@@ -1,0 +1,40 @@
+# ── Dependencies ──
+node_modules/
+package-lock.json
+
+# ── Build output ──
+client/dist/
+
+# ── Environment & Secrets ──
+.env
+.env.local
+.env.*.local
+
+# ── Database (用户数据) ──
+data/
+server/data/
+*.db
+*.db-wal
+*.db-shm
+
+# ── Logs ──
+*.log
+logs/
+npm-debug.log*
+
+# ── IDE ──
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ── OS ──
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ── Sensitive patterns ──
+*.key
+*.pem
+credentials*

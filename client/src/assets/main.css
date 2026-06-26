@@ -1,0 +1,317 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ═══════════════════════════════════════════
+   DESIGN SYSTEM — 全局共享层
+   所有页面通过 main.js 自动引入此文件
+   不需要在单个页面里重复定义
+   ═══════════════════════════════════════════ */
+
+/* ── 色彩令牌（Light Mode 默认） ── */
+:root {
+  --ink: #1A1A1A;
+  --paper: #FAFAF7;
+  --paper-dim: #F0EFEA;
+  --line-soft: #D9D6CC;
+  --ink-faint: #8C8878;
+  --stamp-red: #C1432E;
+
+  /* 派生色 */
+  --overlay: rgba(26, 26, 26, 0.2);
+  --scrollbar-thumb: #D9D6CC;
+  --scrollbar-hover: #8C8878;
+  --selection-bg: rgba(193, 67, 46, 0.15);
+  --shadow-toast: 0 4px 24px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.06);
+}
+
+/* ── Dark Mode ── */
+.dark {
+  --ink: #E8E6E1;
+  --paper: #141413;
+  --paper-dim: #1E1E1C;
+  --line-soft: #2E2D2A;
+  --ink-faint: #7A7768;
+  --stamp-red: #E05540;
+
+  --overlay: rgba(0, 0, 0, 0.45);
+  --scrollbar-thumb: #2E2D2A;
+  --scrollbar-hover: #4A4840;
+  --selection-bg: rgba(224, 85, 64, 0.2);
+  --shadow-toast: 0 4px 24px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.2);
+}
+
+@layer base {
+  body {
+    @apply text-ink antialiased;
+    font-feature-settings: 'cv11', 'ss01';
+    background: var(--paper);
+    color: var(--ink);
+  }
+
+  h1, h2, h3 {
+    font-family: 'Fraunces', Georgia, serif;
+  }
+
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-hover); }
+  ::selection { background: var(--selection-bg); }
+}
+
+@layer components {
+  /* ── 按钮 ── */
+  .btn {
+    @apply px-4 py-2 rounded-card font-sans font-medium text-sm transition-all duration-150
+           inline-flex items-center justify-center
+           border;
+    border-color: var(--line-soft);
+    letter-spacing: 0.01em;
+  }
+  .btn-primary {
+    background: var(--ink);
+    color: var(--paper);
+    border-color: var(--ink);
+  }
+  .btn-primary:hover {
+    background: var(--stamp-red);
+    border-color: var(--stamp-red);
+  }
+  .btn-secondary {
+    background: var(--paper);
+    color: var(--ink);
+    border-color: var(--line-soft);
+  }
+  .btn-secondary:hover {
+    border-color: var(--ink);
+  }
+  .btn-danger {
+    background: transparent;
+    color: var(--stamp-red);
+    border-color: var(--stamp-red);
+  }
+  .btn-danger:hover {
+    background: var(--stamp-red);
+    color: var(--paper);
+  }
+  .btn-sm        { @apply px-3 py-1.5 text-xs; }
+  .btn-ghost {
+    background: transparent;
+    color: var(--ink);
+    border-color: transparent;
+  }
+  .btn-ghost:hover {
+    background: var(--paper-dim);
+  }
+
+  /* ── 输入框 ── */
+  .input {
+    @apply w-full px-3 py-2 rounded-card
+           placeholder-ink-faint
+           focus:outline-none
+           transition-colors duration-150;
+    background: var(--paper);
+    color: var(--ink);
+    border: 1px solid var(--line-soft);
+    font-family: 'Inter', sans-serif;
+  }
+  .input:focus {
+    border-color: var(--ink);
+    box-shadow: 0 0 0 1px var(--ink);
+  }
+
+  /* ── 文本域 ── */
+  .textarea {
+    @apply input min-h-[200px] resize-y leading-relaxed;
+  }
+
+  /* ── 下拉选择器 ── */
+  .select {
+    @apply input cursor-pointer;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%238C8878' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.5rem center;
+    background-repeat: no-repeat;
+    background-size: 1.25rem;
+    padding-right: 2.5rem;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+  }
+
+  /* ── 表单字段（带底部分割线） ── */
+  .form-field {
+    @apply py-4;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .form-field:last-child {
+    border-bottom: none;
+  }
+
+  /* ── 标签 ── */
+  .label {
+    @apply block text-xs font-medium mb-1.5 uppercase tracking-wider;
+    font-family: 'IBM Plex Mono', monospace;
+    color: var(--ink-faint);
+  }
+
+  /* ── 卡片 ── */
+  .card {
+    @apply rounded-card;
+    background: var(--paper);
+    border: 1px solid var(--line-soft);
+  }
+
+  /* ── 徽章 ── */
+  .badge {
+    @apply inline-flex items-center px-2 py-0.5 rounded-card text-xs font-medium;
+    font-family: 'IBM Plex Mono', monospace;
+    border: 1px solid var(--line-soft);
+    color: var(--ink-faint);
+  }
+  .badge-stamp {
+    border-color: var(--stamp-red);
+    color: var(--stamp-red);
+  }
+
+  /* ── 分割线 ── */
+  .divider {
+    border-top: 1px solid var(--line-soft);
+  }
+
+  /* ── 区块标题 ── */
+  .section-title {
+    font-family: 'IBM Plex Mono', monospace;
+    @apply text-xs font-medium uppercase tracking-widest;
+    color: var(--ink-faint);
+  }
+
+  /* ── 头像（线稿风格） ── */
+  .avatar {
+    @apply w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0;
+    border: 1px solid var(--line-soft);
+    background: var(--paper);
+  }
+  .avatar-text {
+    @apply font-semibold text-sm;
+    font-family: 'Inter', sans-serif;
+    color: var(--ink);
+  }
+  .avatar-icon {
+    color: var(--ink-faint);
+  }
+
+  /* ── 页面标题 ── */
+  .page-title {
+    @apply text-display font-serif;
+    color: var(--ink);
+  }
+
+  /* ── 页头栏 ── */
+  .page-header {
+    @apply px-6 py-4;
+    background: var(--paper);
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  /* ── 空状态 ── */
+  .empty-state {
+    @apply flex flex-col items-center justify-center h-64;
+    color: var(--ink-faint);
+  }
+  .empty-state-title {
+    @apply text-sm font-serif mt-4;
+    color: var(--ink);
+  }
+  .empty-state-desc {
+    @apply text-xs mt-1;
+    color: var(--ink-faint);
+  }
+
+  /* ── 加载指示器 ── */
+  .spinner {
+    @apply w-5 h-5 border-2 rounded-full animate-spin;
+    border-color: var(--line-soft);
+    border-top-color: var(--ink);
+  }
+}
+
+/* ── 动画 ── */
+
+/* 日程虚线→实线 */
+@keyframes dash-to-solid {
+  0%   { border-style: dashed; border-color: var(--stamp-red); opacity: 0.7; }
+  50%  { border-style: dashed; border-color: var(--ink); opacity: 0.85; }
+  100% { border-style: solid;  border-color: var(--ink); opacity: 1; }
+}
+.calendar-event-confirming { animation: dash-to-solid 0.35s ease-out forwards; }
+
+/* 纸飞机飞出 */
+@keyframes fly-out {
+  0%   { transform: translate(0, 0); opacity: 1; }
+  100% { transform: translate(12px, -12px); opacity: 0; }
+}
+.send-flying { animation: fly-out 0.2s ease-out forwards; }
+
+/* ── 邮件列表 ── */
+.email-item { @apply transition-colors duration-100; }
+.email-item:hover { background: var(--paper-dim); }
+.email-unread .email-subject { @apply font-semibold; color: var(--ink); }
+
+/* ── 日程样式 ── */
+.ai-suggestion { border: 1.5px dashed var(--stamp-red); }
+.manual-event  { border: 1.5px solid var(--ink); }
+
+/* ── 索引卡撕边（收藏夹） ── */
+.index-card { position: relative; }
+.index-card::after {
+  content: '';
+  position: absolute;
+  top: 0; right: -1px;
+  width: 8px; height: 100%;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px, transparent 4px,
+    var(--paper) 4px, var(--paper) 5px,
+    transparent 5px, transparent 9px
+  );
+  border-left: 1px solid var(--line-soft);
+}
+
+/* ── 信封状态 ── */
+.envelope-status { @apply relative; }
+.envelope-status.disconnected::after {
+  content: '?';
+  position: absolute; top: -4px; right: -6px;
+  font-size: 10px; font-weight: 700;
+  color: var(--stamp-red);
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+/* ── 暗色模式过渡 ── */
+html.transitioning,
+html.transitioning *,
+html.transitioning *::before,
+html.transitioning *::after {
+  transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease !important;
+}
+
+/* ── 主题切换按钮 ── */
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.375rem;
+  color: var(--ink-faint);
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.theme-toggle:hover {
+  color: var(--ink);
+  background: var(--paper-dim);
+  border-color: var(--line-soft);
+}
