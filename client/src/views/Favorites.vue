@@ -1,10 +1,10 @@
 <template>
   <div class="h-full flex flex-col">
     <!-- 顶部导航 -->
-    <header class="bg-paper border-b border-line-soft px-6 py-4">
+    <header class="page-header">
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-2xl font-serif font-bold text-ink">账号收藏夹</h1>
+          <h1 class="page-title">账号收藏夹</h1>
           <p class="text-sm text-ink-faint mt-1">记录各平台注册账号信息，纯记录用途</p>
         </div>
         <button @click="openCreateModal" class="btn btn-primary">
@@ -119,7 +119,7 @@
     </div>
 
     <!-- 创建/编辑弹窗 -->
-    <div v-if="showModal" class="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+    <div v-if="showModal" class="fixed inset-0 bg-ink/20 flex items-center justify-center z-50">
       <div class="bg-paper rounded-card w-full max-w-lg mx-4 border border-line-soft">
         <div class="p-6 border-b border-line-soft">
           <h2 class="text-xl font-serif font-bold text-ink">{{ editingFavorite ? '编辑账号' : '添加账号' }}</h2>

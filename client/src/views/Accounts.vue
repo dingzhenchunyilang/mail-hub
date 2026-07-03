@@ -1,9 +1,9 @@
 <template>
   <div class="h-full flex flex-col">
     <!-- 顶部导航 -->
-    <header class="bg-paper border-b border-line-soft px-6 py-4">
+    <header class="page-header">
       <div class="flex items-center justify-between">
-        <h1 class="text-2xl font-serif font-bold text-ink">账号管理</h1>
+        <h1 class="page-title">账号管理</h1>
         <router-link to="/accounts/add" class="btn btn-primary">
           <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4v16m8-8H4" />

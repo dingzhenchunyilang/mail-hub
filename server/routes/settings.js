@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { aiService } from '../services/ai.js';
+import { translationService } from '../services/translation.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ENV_PATH = path.join(__dirname, '..', '.env');
@@ -21,6 +22,14 @@ router.get('/', (req, res) => {
         ai_base_url: env.AI_BASE_URL || 'https://api.openai.com/v1',
         ai_model: env.AI_MODEL || 'gpt-4o-mini',
         has_key: !!env.AI_API_KEY,
+        // 翻译配置（独立于 AI）
+        translation_provider: env.TRANSLATION_PROVIDER || 'openai',
+        translation_api_key: env.TRANSLATION_API_KEY ? '***' + env.TRANSLATION_API_KEY.slice(-4) : '',
+        translation_base_url: env.TRANSLATION_BASE_URL || 'https://api.openai.com/v1',
+        translation_model: env.TRANSLATION_MODEL || 'gpt-4o-mini',
+        translation_has_key: !!env.TRANSLATION_API_KEY,
+        translation_app_id: env.TRANSLATION_APP_ID ? '***' + env.TRANSLATION_APP_ID.slice(-4) : '',
+        translation_has_app_id: !!env.TRANSLATION_APP_ID,
       }
     });
   } catch (error) {
@@ -31,13 +40,20 @@ router.get('/', (req, res) => {
 // 更新配置
 router.put('/', (req, res) => {
   try {
-    const { ai_provider, ai_api_key, ai_base_url, ai_model } = req.body;
+    const { ai_provider, ai_api_key, ai_base_url, ai_model, translation_provider, translation_api_key, translation_base_url, translation_model, translation_app_id } = req.body;
     const env = parseEnv();
 
     if (ai_provider !== undefined) env.AI_PROVIDER = ai_provider;
     if (ai_api_key !== undefined && ai_api_key !== '' && !ai_api_key.startsWith('***')) env.AI_API_KEY = ai_api_key;
     if (ai_base_url !== undefined) env.AI_BASE_URL = ai_base_url;
     if (ai_model !== undefined) env.AI_MODEL = ai_model;
+
+    // 翻译配置
+    if (translation_provider !== undefined) env.TRANSLATION_PROVIDER = translation_provider;
+    if (translation_api_key !== undefined && translation_api_key !== '' && !translation_api_key.startsWith('***')) env.TRANSLATION_API_KEY = translation_api_key;
+    if (translation_base_url !== undefined) env.TRANSLATION_BASE_URL = translation_base_url;
+    if (translation_model !== undefined) env.TRANSLATION_MODEL = translation_model;
+    if (translation_app_id !== undefined && translation_app_id !== '' && !translation_app_id.startsWith('***')) env.TRANSLATION_APP_ID = translation_app_id;
 
     writeEnv(env);
 
@@ -47,12 +63,22 @@ router.put('/', (req, res) => {
     aiService.baseUrl = env.AI_BASE_URL || 'https://api.openai.com/v1';
     aiService.model = env.AI_MODEL || 'gpt-4o-mini';
 
+    // 热更新翻译服务配置
+    translationService.provider = env.TRANSLATION_PROVIDER || 'openai';
+    translationService.apiKey = env.TRANSLATION_API_KEY || '';
+    translationService.baseUrl = env.TRANSLATION_BASE_URL || 'https://api.openai.com/v1';
+    translationService.model = env.TRANSLATION_MODEL || 'gpt-4o-mini';
+    translationService.baiduAppId = env.TRANSLATION_APP_ID || '';
+
     res.json({
       success: true,
       data: {
         configured: aiService.isConfigured(),
         provider: aiService.provider,
         model: aiService.model,
+        translation_configured: translationService.isConfigured(),
+        translation_provider: translationService.provider,
+        translation_model: translationService.model,
       }
     });
   } catch (error) {
@@ -60,7 +86,7 @@ router.put('/', (req, res) => {
   }
 });
 
-// 测试连接
+// 测试 AI 连接
 router.post('/test', async (req, res) => {
   try {
     if (!aiService.isConfigured()) {
@@ -68,6 +94,24 @@ router.post('/test', async (req, res) => {
     }
     const result = await aiService.chat([{ role: 'user', content: '回复"连接成功"这四个字' }], { maxTokens: 100 });
     res.json({ success: true, message: result.trim() || '(连接成功，模型返回空内容)' });
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
+});
+
+// 测试翻译服务连接
+router.post('/test-translation', async (req, res) => {
+  try {
+    if (!translationService.isConfigured()) {
+      return res.json({ success: false, message: '未配置翻译 API Key' });
+    }
+    let result;
+    if (translationService.provider === 'baidu') {
+      result = await translationService.translateWithBaidu('Hello', 'en', 'zh');
+    } else {
+      result = await translationService.chat([{ role: 'user', content: 'Translate to Chinese: Hello' }], { maxTokens: 100 });
+    }
+    res.json({ success: true, message: result.trim() || '(连接成功，返回空内容)' });
   } catch (error) {
     res.json({ success: false, message: error.message });
   }

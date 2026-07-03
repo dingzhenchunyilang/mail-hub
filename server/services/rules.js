@@ -73,7 +73,15 @@ export class RuleEngine {
     const matchedRules = [];
     const actions = [];
 
+    // 白名单检查：如果发件人在白名单中，跳过所有"广告"标签规则
+    const isWhitelisted = this.isWhitelisted(email.from_address);
+
     for (const rule of this.rules) {
+      // 白名单发件人跳过广告标签规则
+      if (isWhitelisted && rule.action_type === 'tag' && rule.action_value === '广告') {
+        continue;
+      }
+
       if (this.matchRule(email, rule)) {
         matchedRules.push(rule);
         actions.push({
@@ -85,6 +93,19 @@ export class RuleEngine {
     }
 
     return { matchedRules, actions };
+  }
+
+  // 检查发件人是否在广告白名单中
+  isWhitelisted(fromAddress) {
+    if (!fromAddress) return false;
+    const db = getDb();
+    try {
+      const addr = fromAddress.toLowerCase().trim();
+      const row = db.prepare('SELECT id FROM ad_whitelist WHERE lower(from_address) = ?').get(addr);
+      return !!row;
+    } finally {
+      db.close();
+    }
   }
 
   // 处理新邮件
@@ -332,6 +353,41 @@ export function removeEmailTag(emailId, tagId) {
 // 内置规则模板
 export function getRuleTemplates() {
   return [
+    // ── 广告识别规则组 ──
+    {
+      name: '广告识别：退订关键词',
+      description: '正文含"退订/unsubscribe/opt out"等关键词 → 打标签"广告"',
+      match_field: 'body',
+      match_type: 'regex',
+      match_value: '(退订|取消订阅|unsubscribe|opt[- ]?out)',
+      action_type: 'tag',
+      action_value: '广告',
+      priority: 30,
+      _group: '广告识别',
+    },
+    {
+      name: '广告识别：发件人地址特征',
+      description: '发件人为 noreply/newsletter/marketing/promotions → 打标签"广告"',
+      match_field: 'from_address',
+      match_type: 'regex',
+      match_value: '^(noreply|no-reply|newsletter|marketing|promotions|promo)@',
+      action_type: 'tag',
+      action_value: '广告',
+      priority: 20,
+      _group: '广告识别',
+    },
+    {
+      name: '广告识别：主题关键词',
+      description: '主题含"限时优惠/折扣/sale/% off"等 → 打标签"广告"',
+      match_field: 'subject',
+      match_type: 'regex',
+      match_value: '(限时优惠|立即抢购|折扣|特惠|清仓|立省|sale|\\d+\\s*%\\s*off|discount)',
+      action_type: 'tag',
+      action_value: '广告',
+      priority: 10,
+      _group: '广告识别',
+    },
+    // ── 原有模板 ──
     {
       name: '订阅邮件归档',
       description: '自动归档订阅类邮件',
@@ -375,6 +431,38 @@ export function getRuleTemplates() {
       action_type: 'star',
     },
   ];
+}
+
+// ── 广告白名单 CRUD ──
+
+export function getAdWhitelist() {
+  const db = getDb();
+  try {
+    return db.prepare('SELECT * FROM ad_whitelist ORDER BY created_at DESC').all();
+  } finally {
+    db.close();
+  }
+}
+
+export function addToAdWhitelist(fromAddress, note = '') {
+  const db = getDb();
+  try {
+    const id = uuidv4();
+    const addr = fromAddress.toLowerCase().trim();
+    db.prepare('INSERT OR IGNORE INTO ad_whitelist (id, from_address, note) VALUES (?, ?, ?)').run(id, addr, note);
+    return { id, from_address: addr, note };
+  } finally {
+    db.close();
+  }
+}
+
+export function removeFromAdWhitelist(fromAddress) {
+  const db = getDb();
+  try {
+    db.prepare('DELETE FROM ad_whitelist WHERE lower(from_address) = ?').run(fromAddress.toLowerCase().trim());
+  } finally {
+    db.close();
+  }
 }
 
 export const ruleEngine = new RuleEngine();

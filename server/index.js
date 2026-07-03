@@ -15,6 +15,7 @@ import eventsRouter from './routes/events.js';
 import aiRouter from './routes/ai.js';
 import settingsRouter from './routes/settings.js';
 import codesRouter from './routes/codes.js';
+import translationRouter from './routes/translation.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3000;
@@ -40,6 +41,7 @@ app.use('/api', rulesRouter);
 app.use('/api/favorites', favoritesRouter);
 app.use('/api/events', eventsRouter);
 app.use('/api/ai', aiRouter);
+app.use('/api/translation', translationRouter);
 app.use('/api/settings', settingsRouter);
 app.use('/api', codesRouter);
 

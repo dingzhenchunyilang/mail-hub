@@ -10,7 +10,7 @@
             </svg>
             返回
           </button>
-          <h1 class="text-lg font-serif font-semibold text-ink truncate max-w-lg">{{ email.subject }}</h1>
+          <h1 class="text-lg font-serif font-semibold text-ink truncate max-w-lg 2xl:max-w-2xl">{{ email.subject }}</h1>
         </div>
 
         <div class="flex items-center space-x-2">
@@ -82,12 +82,12 @@
 
     <!-- Loading -->
     <div v-if="loading" class="flex-1 flex items-center justify-center">
-      <div class="w-5 h-5 border-2 border-line-soft border-t-ink rounded-full animate-spin" />
+      <div class="spinner" />
     </div>
 
     <!-- Content -->
     <div v-else-if="email.id" class="flex-1 overflow-y-auto p-6">
-      <div class="max-w-4xl mx-auto">
+      <div class="max-w-4xl 2xl:max-w-6xl mx-auto">
         <!-- Email header card -->
         <div class="card p-6 mb-5">
           <h2 class="text-xl font-serif font-semibold text-ink mb-3">{{ email.subject }}</h2>
@@ -100,7 +100,7 @@
           <div class="flex items-center p-3 bg-paper-dim rounded-card">
             <div class="w-9 h-9 rounded-full border border-line-soft flex items-center justify-center mr-3">
               <span class="text-ink font-serif font-semibold text-sm">
-                {{ (email.from_name || email.from_address || '?')[0].toUpperCase() }}
+                {{ getAvatarChar(email.from_name || email.from_address) }}
               </span>
             </div>
             <div class="flex-1">
@@ -129,13 +129,148 @@
               </span>
               <span v-if="emailTags.length === 0" class="text-xs text-ink-faint">暂无标签</span>
             </div>
+            <!-- 广告白名单快捷按钮 -->
+            <div v-if="hasAdTag" class="mt-2 pt-2 border-t border-line-soft">
+              <button
+                @click="whitelistSender"
+                class="text-[11px] font-mono text-ink-faint hover:text-ink transition-colors"
+              >
+                不再标记 {{ email.from_address }} 为广告
+              </button>
+            </div>
           </div>
         </div>
 
-        <!-- Email body -->
-        <div class="card p-6">
+        <!-- Translation view mode toggle -->
+        <div v-if="translationResult" class="card mb-4 flex items-center justify-between px-4 py-2">
+          <div class="flex items-center space-x-1">
+            <button
+              @click="viewMode = 'original'"
+              :class="[
+                'px-3 py-1 rounded-card text-xs font-mono transition-colors',
+                viewMode === 'original'
+                  ? 'bg-ink text-paper'
+                  : 'text-ink-faint hover:text-ink hover:bg-paper-dim'
+              ]"
+            >仅原文</button>
+            <button
+              @click="viewMode = 'parallel'"
+              :class="[
+                'px-3 py-1 rounded-card text-xs font-mono transition-colors',
+                viewMode === 'parallel'
+                  ? 'bg-ink text-paper'
+                  : 'text-ink-faint hover:text-ink hover:bg-paper-dim'
+              ]"
+            >对照</button>
+            <button
+              @click="viewMode = 'translated'"
+              :class="[
+                'px-3 py-1 rounded-card text-xs font-mono transition-colors',
+                viewMode === 'translated'
+                  ? 'bg-ink text-paper'
+                  : 'text-ink-faint hover:text-ink hover:bg-paper-dim'
+              ]"
+            >仅译文</button>
+          </div>
+          <div class="flex items-center space-x-2">
+            <span v-if="translationResult.cached" class="text-[10px] font-mono text-ink-faint">缓存</span>
+            <button
+              @click="forceTranslate"
+              :disabled="translating"
+              class="text-[10px] font-mono text-ink-faint hover:text-ink"
+            >重新翻译</button>
+          </div>
+        </div>
+
+        <!-- Translation loading skeleton -->
+        <div v-if="translating && !translationResult" class="card p-6">
+          <div class="space-y-4">
+            <div v-for="i in 6" :key="i" class="h-4 bg-paper-dim rounded animate-pulse" :style="{ width: `${90 - i * 10}%` }" />
+          </div>
+          <p class="text-xs font-mono text-ink-faint mt-4">翻译中，请稍候...</p>
+        </div>
+
+        <!-- Email body - original mode -->
+        <div v-else-if="!translationResult || viewMode === 'original'" class="card p-6">
           <div v-if="email.body_html" class="prose prose-sm max-w-none email-content" v-html="sanitizedHtml" />
           <div v-else class="whitespace-pre-wrap text-sm text-ink leading-relaxed">{{ email.body_text }}</div>
+        </div>
+
+        <!-- Parallel view (desktop: side-by-side, mobile: alternating) -->
+        <div v-else-if="viewMode === 'parallel' && translationResult" class="card overflow-hidden">
+          <!-- Desktop: side-by-side -->
+          <div class="hidden md:grid md:grid-cols-2">
+            <!-- Original column -->
+            <div class="p-6 space-y-4 border-r border-line-soft">
+              <div
+                v-for="(para, i) in translationResult.paragraphs"
+                :key="'o-' + i"
+                class="relative"
+              >
+                <span class="absolute -top-3 left-0 text-[9px] font-mono text-ink-faint bg-paper px-1 select-none">原文</span>
+                <div class="text-sm text-ink leading-relaxed translation-para" v-html="para.original_html" />
+              </div>
+            </div>
+            <!-- Translated column -->
+            <div class="p-6 space-y-4">
+              <div
+                v-for="(para, i) in translationResult.paragraphs"
+                :key="'t-' + i"
+                class="relative pl-3"
+                style="border-left: 2px solid var(--ink-faint);"
+              >
+                <span class="absolute -top-3 left-3 text-[9px] font-mono text-ink-faint bg-paper px-1 select-none">译文</span>
+                <div class="text-sm text-ink leading-relaxed whitespace-pre-wrap">{{ para.translated_text }}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mobile: alternating paragraphs -->
+          <div class="md:hidden p-4 space-y-3">
+            <template v-for="(para, i) in translationResult.paragraphs" :key="'m-' + i">
+              <!-- Original -->
+              <div class="relative p-3 bg-paper-dim rounded-card">
+                <span class="absolute -top-2 left-2 text-[9px] font-mono text-ink-faint bg-paper px-1 select-none">原文</span>
+                <div class="text-sm text-ink leading-relaxed translation-para mt-1" v-html="para.original_html" />
+              </div>
+              <!-- Translated -->
+              <div class="relative p-3 pl-4" style="border-left: 2px solid var(--ink-faint);">
+                <span class="absolute -top-2 left-4 text-[9px] font-mono text-ink-faint bg-paper px-1 select-none">译文</span>
+                <div class="text-sm text-ink leading-relaxed whitespace-pre-wrap mt-1">{{ para.translated_text }}</div>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- Translated only view -->
+        <div v-else-if="viewMode === 'translated' && translationResult" class="card p-6">
+          <div class="space-y-4">
+            <div
+              v-for="(para, i) in translationResult.paragraphs"
+              :key="'to-' + i"
+              class="relative pl-3"
+              style="border-left: 2px solid var(--ink-faint);"
+            >
+              <div class="text-sm text-ink leading-relaxed whitespace-pre-wrap">{{ para.translated_text }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Translation error -->
+        <div v-if="translationError" class="card p-5 mt-4 border-stamp-red">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+              <svg class="w-4 h-4 text-stamp-red flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+              </svg>
+              <span class="text-sm text-stamp-red">{{ translationError }}</span>
+            </div>
+            <button @click="translationError = ''" class="text-ink-faint hover:text-ink">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         <!-- AI Summary -->
@@ -224,14 +359,73 @@
         </div>
       </div>
     </div>
+
+    <!-- 翻译浮动按钮 -->
+    <div v-if="translationConfigured && email.id && !loading" class="fixed bottom-6 right-6 z-40 flex items-end space-x-2">
+      <!-- 展开面板：语言选择 + 操作 -->
+      <div
+        v-if="showTranslatePanel"
+        class="bg-paper border border-line-soft rounded-card shadow-lg p-3 mb-1 space-y-2"
+        style="min-width: 160px;"
+      >
+        <select
+          v-model="targetLang"
+          @change="onTargetLangChange"
+          class="w-full text-xs py-1.5 px-2 rounded-card border border-line-soft bg-paper text-ink focus:outline-none focus:border-ink"
+          style="font-family: 'IBM Plex Mono', monospace;"
+        >
+          <option value="zh">中文</option>
+          <option value="en">English</option>
+          <option value="ja">日本語</option>
+          <option value="ko">한국어</option>
+          <option value="fr">Français</option>
+          <option value="de">Deutsch</option>
+          <option value="es">Español</option>
+        </select>
+        <button
+          @click="doTranslate(); showTranslatePanel = false"
+          :disabled="translating"
+          class="btn btn-primary btn-sm w-full"
+        >
+          {{ translating ? '翻译中...' : '开始翻译' }}
+        </button>
+        <button
+          v-if="translationResult"
+          @click="forceTranslate(); showTranslatePanel = false"
+          :disabled="translating"
+          class="btn btn-secondary btn-sm w-full text-xs"
+        >
+          重新翻译
+        </button>
+      </div>
+
+      <!-- 浮动按钮 -->
+      <button
+        @click="showTranslatePanel = !showTranslatePanel"
+        :disabled="translating"
+        class="w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 border"
+        :class="translationResult
+          ? 'bg-ink text-paper border-ink hover:bg-stamp-red hover:border-stamp-red'
+          : 'bg-paper text-ink border-line-soft hover:border-ink shadow-md'"
+        :title="translating ? '翻译中...' : '翻译'"
+      >
+        <svg v-if="translating" class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" />
+        </svg>
+        <svg v-else class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 21l5.25-11.25L21 21m-9-3h7.5M3 5.621a48.474 48.474 0 016-.371m0 0c1.12 0 2.233.038 3.334.114M9 5.25V3m3.334 2.364C11.176 10.658 7.69 15.08 3 17.502m9.334-12.138c.896.061 1.785.147 2.666.257m-4.589 8.495a18.023 18.023 0 01-3.827-5.802" />
+        </svg>
+      </button>
+    </div>
+
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
-import { emailsApi, tagsApi, aiApi, eventsApi } from '@/api';
-import { formatAccountName } from '@/utils/display';
+import { emailsApi, tagsApi, aiApi, eventsApi, translationApi, rulesApi } from '@/api';
+import { formatAccountName, getAvatarChar } from '@/utils/display';
 import { useDialog } from '@/composables/useDialog';
 import dayjs from 'dayjs';
 import 'dayjs/locale/zh-cn';
@@ -252,6 +446,15 @@ const aiLoading = ref(false);
 const aiSummary = ref('');
 const suggestedEvents = ref([]);
 
+// 翻译状态
+const translationConfigured = ref(false);
+const translating = ref(false);
+const showTranslatePanel = ref(false);
+const translationError = ref('');
+const translationResult = ref(null); // { paragraphs, source_lang, target_lang, cached }
+const targetLang = ref('zh');
+const viewMode = ref('original'); // 'original' | 'parallel' | 'translated'
+
 const formatDate = (d) => d ? dayjs(d).format('YYYY年M月D日 HH:mm:ss') : '';
 
 const formatEventTime = (t) => {
@@ -265,16 +468,43 @@ const availableTags = computed(() => {
   return allTags.value.filter(t => !ids.includes(t.id));
 });
 
+const hasAdTag = computed(() => emailTags.value.some(t => t.name === '广告'));
+
+const whitelistSender = async () => {
+  try {
+    await rulesApi.addWhitelist(email.value.from_address, email.value.from_name || '');
+    // 移除已有的广告标签
+    const adTag = emailTags.value.find(t => t.name === '广告');
+    if (adTag) {
+      await tagsApi.removeEmailTag(email.value.id, adTag.id);
+      emailTags.value = emailTags.value.filter(t => t.id !== adTag.id);
+    }
+    await dialog.alert(`${email.value.from_address} 已加入广告白名单，后续邮件不会再被标记为广告`);
+  } catch (e) { await dialog.alert('操作失败: ' + e.message); }
+};
+
 const sanitizedHtml = computed(() => {
   if (!email.value.body_html) return '';
-  return email.value.body_html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+  return email.value.body_html
+    // 移除 script 标签
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    // 移除 IE 条件注释（VML 样式藏在里面）
+    .replace(/<!--\[if[\s\S]*?endif\]-->/gi, '')
+    // 移除 Outlook VML 元素
+    .replace(/<v:[^>]*>[\s\S]*?<\/v:[^>]*>/gi, '')
+    .replace(/<o:[^>]*>[\s\S]*?<\/o:[^>]*>/gi, '');
 });
 
 const loadEmail = async () => {
   loading.value = true;
   try {
     const result = await emailsApi.get(route.params.id);
-    if (result.success) { email.value = result.data; loadEmailTags(); }
+    if (result.success) {
+      email.value = result.data;
+      loadEmailTags();
+      detectDefaultTargetLang();
+      checkTranslationCache();
+    }
     else { await dialog.alert('邮件加载失败: ' + result.message); }
   } catch (e) { await dialog.alert('邮件加载失败'); }
   finally { loading.value = false; }
@@ -347,6 +577,10 @@ const loadAiStatus = async () => {
     const r = await aiApi.status();
     if (r.success) aiConfigured.value = r.data.configured;
   } catch (e) { console.error(e); }
+  try {
+    const r = await translationApi.status();
+    if (r.success) translationConfigured.value = r.data.configured;
+  } catch (e) { console.error(e); }
 };
 
 const summarizeEmail = async () => {
@@ -406,11 +640,85 @@ const addEventToCalendar = async (event) => {
   } catch (e) { await dialog.alert('添加失败: ' + e.message); }
 };
 
+// ── 翻译功能 ──
+
+// 自动检测默认目标语言
+const detectDefaultTargetLang = () => {
+  const text = email.value.body_text || email.value.preview || email.value.subject || '';
+  const sample = text.substring(0, 500);
+  const cjkCount = (sample.match(/[\u4e00-\u9fff\u3400-\u4dbf]/g) || []).length;
+  const totalCount = sample.replace(/\s/g, '').length;
+  if (totalCount > 0 && cjkCount / totalCount > 0.3) {
+    targetLang.value = 'en'; // 中文 → 英文
+  } else {
+    targetLang.value = 'zh'; // 其他 → 中文
+  }
+};
+
+// 检查是否有缓存翻译
+const checkTranslationCache = async () => {
+  if (!email.value.id) return;
+  try {
+    const r = await translationApi.getCached(email.value.id, targetLang.value);
+    if (r.success && r.data) {
+      translationResult.value = r.data;
+      viewMode.value = 'parallel';
+    }
+  } catch (e) { /* 无缓存，忽略 */ }
+};
+
+// 执行翻译
+const doTranslate = async (forceRefresh = false) => {
+  if (!translationConfigured.value) {
+    await dialog.alert('翻译服务未配置，请在设置中配置翻译 API Key');
+    return;
+  }
+
+  translating.value = true;
+  translationError.value = '';
+
+  try {
+    const r = await translationApi.translate(email.value.id, targetLang.value, forceRefresh);
+    if (r.success) {
+      translationResult.value = r.data;
+      viewMode.value = 'parallel';
+    } else {
+      translationError.value = r.message || '翻译失败，请检查 API 配置或重试';
+    }
+  } catch (e) {
+    translationError.value = e.message || '翻译失败，请检查 API 配置或重试';
+  } finally {
+    translating.value = false;
+  }
+};
+
+// 切换目标语言时自动检查缓存
+const onTargetLangChange = async () => {
+  translationResult.value = null;
+  translationError.value = '';
+  viewMode.value = 'original';
+  await checkTranslationCache();
+};
+
+// 重新翻译（强制刷新缓存）
+const forceTranslate = () => doTranslate(true);
+
 onMounted(() => { loadEmail(); loadAllTags(); loadAiStatus(); });
 </script>
 
 <style scoped>
 .email-content :deep(img) { max-width: 100%; height: auto; }
-.email-content :deep(a) { color: #1A1A1A; text-decoration: underline; }
-.email-content :deep(blockquote) { border-left: 2px solid #D9D6CC; padding-left: 1rem; margin-left: 0; color: #8C8878; }
+.email-content :deep(a) { color: var(--ink); text-decoration: underline; }
+.email-content :deep(blockquote) { border-left: 2px solid var(--line-soft); padding-left: 1rem; margin-left: 0; color: var(--ink-faint); }
+
+/* 翻译段落样式 */
+.translation-para :deep(p) { margin: 0 0 0.5em 0; }
+.translation-para :deep(p:last-child) { margin-bottom: 0; }
+.translation-para :deep(a) { color: var(--ink); text-decoration: underline; }
+.translation-para :deep(blockquote) { border-left: 2px solid var(--line-soft); padding-left: 0.75rem; color: var(--ink-faint); }
+.translation-para :deep(ul), .translation-para :deep(ol) { padding-left: 1.5rem; margin: 0.25em 0; }
+.translation-para :deep(li) { margin: 0.15em 0; }
+.translation-para :deep(strong) { font-weight: 600; }
+.translation-para :deep(code) { font-family: 'IBM Plex Mono', monospace; font-size: 0.85em; background: var(--paper-dim); padding: 0.1em 0.3em; border-radius: 3px; }
+.translation-para :deep(pre) { font-family: 'IBM Plex Mono', monospace; font-size: 0.85em; background: var(--paper-dim); padding: 0.75rem; border-radius: 5px; overflow-x: auto; }
 </style>

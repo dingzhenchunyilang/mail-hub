@@ -1,7 +1,7 @@
 <template>
   <div class="h-full flex flex-col">
     <!-- 顶部导航 -->
-    <header class="bg-paper border-b border-line-soft px-6 py-4">
+    <header class="page-header">
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-4">
           <button @click="goBack" class="btn btn-secondary btn-sm">
@@ -10,7 +10,7 @@
             </svg>
             返回
           </button>
-          <h1 class="text-xl font-serif font-bold text-ink">{{ isEditing ? '编辑账号' : '添加账号' }}</h1>
+          <h1 class="page-title">{{ isEditing ? '编辑账号' : '添加账号' }}</h1>
         </div>
       </div>
     </header>

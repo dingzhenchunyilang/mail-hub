@@ -1,10 +1,10 @@
 <template>
   <div class="h-full flex flex-col">
     <!-- Header -->
-    <header class="bg-paper border-b border-line-soft px-6 py-4">
+    <header class="page-header">
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-display text-ink font-serif">规则管理</h1>
+          <h1 class="page-title">规则管理</h1>
           <p class="text-xs text-ink-faint mt-1 font-mono">设置自动分类规则，邮件按规则自动打标签或归档</p>
         </div>
         <div class="flex space-x-3">
@@ -33,7 +33,7 @@
     <!-- Rules list -->
     <div class="flex-1 overflow-y-auto p-6">
       <div v-if="loading" class="flex items-center justify-center h-64">
-        <div class="w-5 h-5 border-2 border-line-soft border-t-ink rounded-full animate-spin" />
+        <div class="spinner" />
       </div>
 
       <div v-else-if="rules.length === 0" class="flex flex-col items-center justify-center h-64 text-ink-faint">
@@ -87,6 +87,45 @@
               <button @click="deleteRule(rule)" class="btn btn-danger btn-sm">删除</button>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 广告白名单 -->
+    <div class="border-t border-line-soft px-6 py-4">
+      <div class="max-w-4xl mx-auto">
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <h2 class="text-sm font-serif font-semibold text-ink">广告白名单</h2>
+            <p class="text-[11px] text-ink-faint mt-0.5 font-mono">白名单中的发件人不会被广告规则标记</p>
+          </div>
+          <div class="flex items-center space-x-2">
+            <input
+              v-model="newWhitelistAddr"
+              type="text"
+              class="input text-xs"
+              style="width: 240px;"
+              placeholder="输入发件人地址，如 news@example.com"
+              @keyup.enter="addWhitelist"
+            />
+            <button @click="addWhitelist" class="btn btn-secondary btn-sm">添加</button>
+          </div>
+        </div>
+
+        <div v-if="whitelist.length === 0" class="text-xs text-ink-faint font-mono py-2">
+          暂无白名单发件人
+        </div>
+
+        <div v-else class="flex flex-wrap gap-2">
+          <span
+            v-for="item in whitelist"
+            :key="item.id"
+            class="inline-flex items-center px-2.5 py-1 rounded-card text-[11px] font-mono border border-line-soft text-ink"
+          >
+            {{ item.from_address }}
+            <span v-if="item.note" class="text-ink-faint ml-1">({{ item.note }})</span>
+            <button @click="removeWhitelist(item)" class="ml-2 text-ink-faint hover:text-stamp-red">&times;</button>
+          </span>
         </div>
       </div>
     </div>
@@ -204,6 +243,8 @@ const rules = ref([]);
 const templates = ref([]);
 const loading = ref(true);
 const showModal = ref(false);
+const whitelist = ref([]);
+const newWhitelistAddr = ref('');
 const showTemplateModal = ref(false);
 const editingRule = ref(null);
 
@@ -266,9 +307,32 @@ const applyAllRules = async () => {
 };
 
 const useTemplate = (t) => {
-  form.value = { name: t.name, description: t.description, match_field: t.match_field, match_type: t.match_type, match_value: t.match_value, action_type: t.action_type, action_value: t.action_value || '', priority: 0 };
+  form.value = { name: t.name, description: t.description, match_field: t.match_field, match_type: t.match_type, match_value: t.match_value, action_type: t.action_type, action_value: t.action_value || '', priority: t.priority || 0 };
   showTemplateModal.value = false; showModal.value = true;
 };
 
-onMounted(() => { loadRules(); loadTemplates(); });
+// ── 白名单管理 ──
+
+const loadWhitelist = async () => {
+  try { const r = await rulesApi.getWhitelist(); if (r.success) whitelist.value = r.data; }
+  catch (e) { console.error(e); }
+};
+
+const addWhitelist = async () => {
+  const addr = newWhitelistAddr.value.trim();
+  if (!addr) return;
+  try {
+    await rulesApi.addWhitelist(addr);
+    newWhitelistAddr.value = '';
+    loadWhitelist();
+  } catch (e) { await dialog.alert('添加失败: ' + e.message); }
+};
+
+const removeWhitelist = async (item) => {
+  if (!await dialog.confirm(`确定将 ${item.from_address} 从白名单移除？`)) return;
+  try { await rulesApi.removeWhitelist(item.from_address); loadWhitelist(); }
+  catch (e) { await dialog.alert('移除失败: ' + e.message); }
+};
+
+onMounted(() => { loadRules(); loadTemplates(); loadWhitelist(); });
 </script>

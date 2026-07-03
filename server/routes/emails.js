@@ -190,6 +190,69 @@ router.get('/', (req, res) => {
   }
 });
 
+// 批量标记已读/未读
+router.put('/batch/read', (req, res) => {
+  const { ids, is_read } = req.body;
+  const db = getDb();
+  try {
+    const stmt = db.prepare('UPDATE emails SET is_read = ? WHERE id = ?');
+    const updateMany = db.transaction((emailIds) => {
+      for (const id of emailIds) {
+        stmt.run(is_read ? 1 : 0, id);
+      }
+    });
+    updateMany(ids);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  } finally {
+    db.close();
+  }
+});
+
+// 批量删除（软删除 + 同步删除服务器）
+router.put('/batch/delete', async (req, res) => {
+  const { ids } = req.body;
+  const db = getDb();
+  try {
+    // 检查是否有星标邮件
+    const placeholders = ids.map(() => '?').join(',');
+    const starred = db.prepare(`SELECT id FROM emails WHERE id IN (${placeholders}) AND is_starred = 1`).all(...ids);
+    if (starred.length > 0) {
+      return res.status(400).json({ success: false, message: '包含星标邮件，不能删除' });
+    }
+
+    const stmt = db.prepare('UPDATE emails SET is_deleted = 1 WHERE id = ?');
+    for (const id of ids) {
+      stmt.run(id);
+    }
+
+    // 同步删除服务器邮件
+    for (const id of ids) {
+      const email = db.prepare('SELECT * FROM emails WHERE id = ?').get(id);
+      if (email && email.uid && email.folder) {
+        try {
+          const account = db.prepare('SELECT * FROM accounts WHERE id = ?').get(email.account_id);
+          if (account) {
+            const { ImapService } = await import('../services/imap.js');
+            const imapService = new ImapService(account);
+            await imapService.deleteEmail(email.folder, email.uid);
+            console.log(`[Delete] Deleted email ${email.uid} from ${email.folder}`);
+          }
+        } catch (imapError) {
+          console.error('[Delete] Failed to delete from server:', imapError.message);
+        }
+      }
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  } finally {
+    db.close();
+  }
+});
+
 // 获取单封邮件详情
 router.get('/:id', (req, res) => {
   const db = getDb();
@@ -228,26 +291,6 @@ router.put('/:id/read', (req, res) => {
   const db = getDb();
   try {
     db.prepare('UPDATE emails SET is_read = ? WHERE id = ?').run(is_read ? 1 : 0, req.params.id);
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  } finally {
-    db.close();
-  }
-});
-
-// 批量标记已读/未读
-router.put('/batch/read', (req, res) => {
-  const { ids, is_read } = req.body;
-  const db = getDb();
-  try {
-    const stmt = db.prepare('UPDATE emails SET is_read = ? WHERE id = ?');
-    const updateMany = db.transaction((emailIds) => {
-      for (const id of emailIds) {
-        stmt.run(is_read ? 1 : 0, id);
-      }
-    });
-    updateMany(ids);
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -327,49 +370,6 @@ router.put('/:id/delete', async (req, res) => {
         }
       } catch (imapError) {
         console.error('[Delete] Failed to delete from server:', imapError.message);
-      }
-    }
-
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  } finally {
-    db.close();
-  }
-});
-
-// 批量删除（软删除 + 同步删除服务器）
-router.put('/batch/delete', async (req, res) => {
-  const { ids } = req.body;
-  const db = getDb();
-  try {
-    // 检查是否有星标邮件
-    const placeholders = ids.map(() => '?').join(',');
-    const starred = db.prepare(`SELECT id FROM emails WHERE id IN (${placeholders}) AND is_starred = 1`).all(...ids);
-    if (starred.length > 0) {
-      return res.status(400).json({ success: false, message: '包含星标邮件，不能删除' });
-    }
-
-    const stmt = db.prepare('UPDATE emails SET is_deleted = 1 WHERE id = ?');
-    for (const id of ids) {
-      stmt.run(id);
-    }
-
-    // 同步删除服务器邮件
-    for (const id of ids) {
-      const email = db.prepare('SELECT * FROM emails WHERE id = ?').get(id);
-      if (email && email.uid && email.folder) {
-        try {
-          const account = db.prepare('SELECT * FROM accounts WHERE id = ?').get(email.account_id);
-          if (account) {
-            const { ImapService } = await import('../services/imap.js');
-            const imapService = new ImapService(account);
-            await imapService.deleteEmail(email.folder, email.uid);
-            console.log(`[Delete] Deleted email ${email.uid} from ${email.folder}`);
-          }
-        } catch (imapError) {
-          console.error('[Delete] Failed to delete from server:', imapError.message);
-        }
       }
     }
 
@@ -493,6 +493,15 @@ router.get('/stats/overview', (req, res) => {
     const starred = db.prepare('SELECT COUNT(*) as count FROM emails WHERE is_deleted = 0 AND is_starred = 1').get();
     const archived = db.prepare('SELECT COUNT(*) as count FROM emails WHERE is_deleted = 0 AND is_archived = 1').get();
 
+    // 按账号分组未读数
+    const unreadByAccount = db.prepare(`
+      SELECT a.id, a.name, a.email, COUNT(e.id) as unread_count
+      FROM accounts a
+      LEFT JOIN emails e ON e.account_id = a.id AND e.is_deleted = 0 AND e.is_read = 0
+      WHERE a.is_active = 1
+      GROUP BY a.id
+    `).all();
+
     res.json({
       success: true,
       data: {
@@ -500,6 +509,7 @@ router.get('/stats/overview', (req, res) => {
         unread: unread.count,
         starred: starred.count,
         archived: archived.count,
+        unread_by_account: unreadByAccount,
       }
     });
   } catch (error) {

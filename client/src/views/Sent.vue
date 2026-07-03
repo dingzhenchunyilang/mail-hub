@@ -167,7 +167,7 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { emailsApi, accountsApi } from '@/api';
-import { formatAccountName, formatAccountFull } from '@/utils/display';
+import { formatAccountName, formatAccountFull, formatTime } from '@/utils/display';
 import { useDialog } from '@/composables/useDialog';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -187,15 +187,6 @@ const searchQuery = ref('');
 const selectedIds = ref([]);
 const pagination = ref({ page: 1, limit: 50, total: 0, pages: 0 });
 
-const formatTime = (dateStr) => {
-  if (!dateStr) return '';
-  const date = dayjs(dateStr);
-  const now = dayjs();
-  if (date.isSame(now, 'day')) return date.format('HH:mm');
-  if (date.isSame(now.subtract(1, 'day'), 'day')) return '昨天';
-  if (date.isSame(now, 'year')) return date.format('M/D');
-  return date.format('YY/M/D');
-};
 
 const cleanPreview = (text, bodyText) => {
   const source = text || bodyText || '';

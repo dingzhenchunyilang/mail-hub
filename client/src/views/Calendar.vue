@@ -1,10 +1,10 @@
 <template>
   <div class="h-full flex flex-col">
     <!-- Header -->
-    <header class="bg-paper border-b border-line-soft px-6 py-4">
+    <header class="page-header">
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-4">
-          <h1 class="text-display text-ink font-serif">日程表</h1>
+          <h1 class="page-title">日程表</h1>
 
           <!-- View toggle -->
           <div class="flex border border-line-soft rounded-card overflow-hidden">
@@ -69,6 +69,10 @@
           <span class="w-4 h-3 border-[1.5px] border-dashed border-stamp-red rounded-sm inline-block"></span>
           <span>AI 建议（待确认）</span>
         </div>
+        <div class="flex items-center space-x-1.5">
+          <span class="inline-block text-stamp-red text-sm leading-none">✓</span>
+          <span>已完成</span>
+        </div>
       </div>
     </header>
 
@@ -113,15 +117,31 @@
                 :key="event.id"
                 @click.stop="editEvent(event)"
                 :class="[
-                  'text-[11px] px-1.5 py-0.5 rounded-sm truncate cursor-pointer transition-colors',
+                  'group flex items-center text-[11px] px-1.5 py-0.5 rounded-sm truncate cursor-pointer transition-colors',
                   event.source === 'ai'
                     ? 'ai-suggestion text-stamp-red hover:bg-stamp-red/5'
                     : 'manual-event text-ink hover:bg-ink/5',
+                  event.completed ? 'event-completed' : '',
                   confirmingIds.has(event.id) ? 'calendar-event-confirming' : ''
                 ]"
               >
                 <span v-if="event.source === 'ai'" class="mr-1 text-[9px] font-mono">AI</span>
-                {{ event.title }}
+                <span class="flex-1 truncate">{{ event.title }}</span>
+                <!-- 完成戳印按钮 -->
+                <button
+                  @click.stop="toggleComplete(event)"
+                  :class="[
+                    'flex-shrink-0 ml-1 w-4 h-4 rounded-full border flex items-center justify-center transition-all stamp-btn',
+                    event.completed
+                      ? 'bg-stamp-red border-stamp-red text-paper opacity-100'
+                      : 'border-line-soft text-transparent opacity-0 group-hover:opacity-60 hover:!opacity-100 hover:border-stamp-red hover:text-stamp-red'
+                  ]"
+                  :title="event.completed ? '标记未完成' : '标记完成'"
+                >
+                  <svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                  </svg>
+                </button>
               </div>
               <div v-if="day.events.length > 3" class="text-[10px] font-mono text-ink-faint px-1.5">
                 +{{ day.events.length - 3 }}
@@ -134,8 +154,7 @@
       <!-- Week view -->
       <div v-else class="card">
         <!-- Day header -->
-        <div class="grid grid-cols-8 border-b border-line-soft">
-          <div class="px-2 py-2.5"></div>
+        <div class="grid grid-cols-7 border-b border-line-soft">
           <div
             v-for="day in weekViewDays"
             :key="day.date"
@@ -153,35 +172,47 @@
           </div>
         </div>
 
-        <!-- Time grid -->
-        <div class="relative">
-          <div v-for="hour in hours" :key="hour" class="grid grid-cols-8 border-b border-line-soft/50">
-            <div class="px-2 py-3 text-[10px] font-mono text-ink-faint text-right border-r border-line-soft/50">
-              {{ String(hour).padStart(2, '0') }}:00
-            </div>
-            <div
-              v-for="day in weekViewDays"
-              :key="day.date + hour"
-              :class="[
-                'px-1 py-1 min-h-[50px] border-r border-line-soft/50 cursor-pointer hover:bg-paper-dim transition-colors',
-                day.isToday ? 'bg-paper-dim/30' : ''
-              ]"
-              @click="openCreateModal(day.date, hour)"
-            >
+        <!-- Day rows with events -->
+        <div class="grid grid-cols-7 min-h-[400px]">
+          <div
+            v-for="day in weekViewDays"
+            :key="day.date"
+            :class="[
+              'p-2 border-r border-line-soft/50 cursor-pointer hover:bg-paper-dim transition-colors',
+              day.isToday ? 'bg-paper-dim/30' : ''
+            ]"
+            @click="openCreateModal(day.date)"
+          >
+            <div class="space-y-1">
               <div
-                v-for="event in getEventsForHour(day.date, hour)"
+                v-for="event in getEventsForDate(day.date)"
                 :key="event.id"
                 @click.stop="editEvent(event)"
                 :class="[
-                  'text-[11px] px-1.5 py-1 rounded-sm cursor-pointer mb-1 transition-colors',
+                  'group flex items-center text-[11px] px-1.5 py-1 rounded-sm cursor-pointer mb-1 transition-colors',
                   event.source === 'ai'
                     ? 'ai-suggestion text-stamp-red hover:bg-stamp-red/5'
                     : 'manual-event text-ink hover:bg-ink/5',
+                  event.completed ? 'event-completed' : '',
                   confirmingIds.has(event.id) ? 'calendar-event-confirming' : ''
                 ]"
               >
                 <span v-if="event.source === 'ai'" class="mr-1 text-[9px] font-mono">AI</span>
-                {{ event.title }}
+                <span class="flex-1 truncate">{{ event.title }}</span>
+                <button
+                  @click.stop="toggleComplete(event)"
+                  :class="[
+                    'flex-shrink-0 ml-1 w-4 h-4 rounded-full border flex items-center justify-center transition-all stamp-btn',
+                    event.completed
+                      ? 'bg-stamp-red border-stamp-red text-paper opacity-100'
+                      : 'border-line-soft text-transparent opacity-0 group-hover:opacity-60 hover:!opacity-100 hover:border-stamp-red hover:text-stamp-red'
+                  ]"
+                  :title="event.completed ? '标记未完成' : '标记完成'"
+                >
+                  <svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                  </svg>
+                </button>
               </div>
             </div>
           </div>
@@ -204,20 +235,14 @@
 
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="label">开始时间</label>
-              <input v-model="form.start_time" type="datetime-local" class="input" />
+              <label class="label">开始日期</label>
+              <input v-model="form.start_date" type="date" class="input" />
             </div>
             <div>
-              <label class="label">结束时间</label>
-              <input v-model="form.end_time" type="datetime-local" class="input" />
+              <label class="label">结束日期</label>
+              <input v-model="form.end_date" type="date" class="input" />
+              <p class="text-[10px] font-mono text-ink-faint mt-1">留空 = 单日日程</p>
             </div>
-          </div>
-
-          <div>
-            <label class="flex items-center space-x-2">
-              <input v-model="form.all_day" type="checkbox" class="rounded-card border-line-soft text-ink" />
-              <span class="text-sm text-ink">全天事件</span>
-            </label>
           </div>
 
           <div>
@@ -272,16 +297,14 @@ const confirmingIds = ref(new Set());
 
 const form = ref({
   title: '',
-  start_time: '',
-  end_time: '',
-  all_day: false,
+  start_date: '',
+  end_date: '',
   notes: '',
   source: 'manual',
   color: '#1A1A1A',
 });
 
 const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
-const hours = Array.from({ length: 14 }, (_, i) => i + 7);
 
 const currentTitle = computed(() => {
   if (viewMode.value === 'month') return currentDate.value.format('YYYY年M月');
@@ -289,6 +312,14 @@ const currentTitle = computed(() => {
   const e = currentDate.value.endOf('week');
   return `${s.format('M月D日')} - ${e.format('M月D日')}`;
 });
+
+// 判断某个事件是否覆盖某一天
+const eventCoversDate = (event, ds) => {
+  const start = dayjs(event.start_time).format('YYYY-MM-DD');
+  // end_time 存在则用 end_time，否则等于 start_time（单日事件）
+  const end = event.end_time ? dayjs(event.end_time).format('YYYY-MM-DD') : start;
+  return ds >= start && ds <= end;
+};
 
 const calendarDays = computed(() => {
   const start = currentDate.value.startOf('month').startOf('week');
@@ -302,7 +333,7 @@ const calendarDays = computed(() => {
       day: cur.date(),
       isCurrentMonth: cur.month() === currentDate.value.month(),
       isToday: cur.isSame(dayjs(), 'day'),
-      events: events.value.filter(e => dayjs(e.start_time).format('YYYY-MM-DD') === ds),
+      events: events.value.filter(e => eventCoversDate(e, ds)),
     });
     cur = cur.add(1, 'day');
   }
@@ -317,10 +348,8 @@ const weekViewDays = computed(() => {
   });
 });
 
-const getEventsForHour = (date, hour) => {
-  return events.value.filter(e => {
-    return dayjs(e.start_time).format('YYYY-MM-DD') === date && dayjs(e.start_time).hour() === hour;
-  });
+const getEventsForDate = (date) => {
+  return events.value.filter(e => eventCoversDate(e, date));
 };
 
 const loadEvents = async () => {
@@ -357,15 +386,13 @@ const goToNext = () => {
 };
 const goToToday = () => { currentDate.value = dayjs(); };
 
-const openCreateModal = (date, hour) => {
+const openCreateModal = (date) => {
   editingEvent.value = null;
-  const start = date ? dayjs(date) : dayjs();
-  const startTime = hour !== undefined ? start.hour(hour).minute(0) : start.startOf('hour').add(1, 'hour');
+  const d = date || dayjs().format('YYYY-MM-DD');
   form.value = {
     title: '',
-    start_time: startTime.format('YYYY-MM-DDTHH:mm'),
-    end_time: startTime.add(1, 'hour').format('YYYY-MM-DDTHH:mm'),
-    all_day: false,
+    start_date: d,
+    end_date: '',
     notes: '',
     source: 'manual',
     color: '#1A1A1A',
@@ -377,9 +404,8 @@ const editEvent = (event) => {
   editingEvent.value = event;
   form.value = {
     title: event.title,
-    start_time: dayjs(event.start_time).format('YYYY-MM-DDTHH:mm'),
-    end_time: event.end_time ? dayjs(event.end_time).format('YYYY-MM-DDTHH:mm') : '',
-    all_day: event.all_day === 1,
+    start_date: dayjs(event.start_time).format('YYYY-MM-DD'),
+    end_date: event.end_time ? dayjs(event.end_time).format('YYYY-MM-DD') : '',
     notes: event.notes || '',
     source: event.source,
     color: event.color || '#1A1A1A',
@@ -390,12 +416,31 @@ const editEvent = (event) => {
 const closeModal = () => { showModal.value = false; editingEvent.value = null; };
 
 const saveEvent = async () => {
-  if (!form.value.title || !form.value.start_time) { await dialog.alert('请填写标题和开始时间'); return; }
+  if (!form.value.title || !form.value.start_date) {
+    await dialog.alert('请填写标题和开始日期');
+    return;
+  }
+
+  // 防呆：结束日期早于开始日期时自动交换
+  if (form.value.end_date && form.value.end_date < form.value.start_date) {
+    const tmp = form.value.start_date;
+    form.value.start_date = form.value.end_date;
+    form.value.end_date = tmp;
+  }
+
+  const startDate = form.value.start_date;
+  const endDate = form.value.end_date || null;
+
   const data = {
-    ...form.value,
-    start_time: new Date(form.value.start_time).toISOString(),
-    end_time: form.value.end_time ? new Date(form.value.end_time).toISOString() : null,
+    title: form.value.title,
+    start_time: new Date(startDate + 'T00:00:00').toISOString(),
+    end_time: endDate ? new Date(endDate + 'T23:59:59').toISOString() : null,
+    all_day: 1,
+    notes: form.value.notes,
+    source: form.value.source,
+    color: form.value.color,
   };
+
   try {
     if (editingEvent.value) await eventsApi.update(editingEvent.value.id, data);
     else await eventsApi.create(data);
@@ -413,6 +458,18 @@ const deleteEvent = async () => {
     loadEvents();
     loadUpcomingEvents();
   } catch (e) { await dialog.alert('删除失败: ' + e.message); }
+};
+
+// 切换完成状态
+const toggleComplete = async (event) => {
+  try {
+    const r = await eventsApi.toggleComplete(event.id);
+    if (r.success) {
+      // 更新本地数据
+      const idx = events.value.findIndex(e => e.id === event.id);
+      if (idx !== -1) events.value[idx] = r.data;
+    }
+  } catch (e) { console.error('切换完成状态失败:', e); }
 };
 
 // Confirm AI event: trigger animation, then update source to manual

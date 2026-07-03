@@ -3,6 +3,8 @@
  * 所有页面 import { xxx } from '@/utils/display' 使用
  */
 
+import dayjs from 'dayjs';
+
 /**
  * 格式化账号显示名
  * 规则：如果 name 和 email 不同 → 显示 name
@@ -53,4 +55,20 @@ export function getAvatarChar(name, email) {
     if (/[A-Z\u4e00-\u9fff]/.test(emailChar)) return emailChar;
   }
   return null;
+}
+
+/**
+ * 格式化邮件列表时间
+ * 今天 → HH:mm，昨天 → "昨天"，今年 → M/D，更早 → YY/M/D
+ * @param {string} dateStr - ISO日期字符串
+ * @returns {string}
+ */
+export function formatTime(dateStr) {
+  if (!dateStr) return '';
+  const date = dayjs(dateStr);
+  const now = dayjs();
+  if (date.isSame(now, 'day')) return date.format('HH:mm');
+  if (date.isSame(now.subtract(1, 'day'), 'day')) return '昨天';
+  if (date.isSame(now, 'year')) return date.format('M/D');
+  return date.format('YY/M/D');
 }

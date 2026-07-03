@@ -4,7 +4,7 @@ import { getDb } from '../models/database.js';
 
 const router = Router();
 
-// 获取日程列表（支持时间范围筛选）
+// 获取日程列表（支持时间范围筛选，多日日程跨天匹配）
 router.get('/', (req, res) => {
   const { start, end, source } = req.query;
   const db = getDb();
@@ -13,7 +13,8 @@ router.get('/', (req, res) => {
     let params = [];
 
     if (start) {
-      where.push('start_time >= ?');
+      // 多日日程：事件的 end_time >= 范围起点（或 end_time 为空 = 单日事件）
+      where.push('(end_time >= ? OR end_time IS NULL)');
       params.push(start);
     }
     if (end) {
@@ -75,18 +76,25 @@ router.get('/:id', (req, res) => {
 
 // 创建日程
 router.post('/', (req, res) => {
-  const { title, start_time, end_time, all_day, notes, source, color } = req.body;
+  let { title, start_time, end_time, all_day, notes, source, color, completed } = req.body;
 
   if (!title || !start_time) {
     return res.status(400).json({ success: false, message: '标题和开始时间为必填' });
+  }
+
+  // 防呆：结束时间早于开始时间时自动交换
+  if (end_time && start_time > end_time) {
+    const tmp = start_time;
+    start_time = end_time;
+    end_time = tmp;
   }
 
   const db = getDb();
   try {
     const id = uuidv4();
     db.prepare(`
-      INSERT INTO events (id, title, start_time, end_time, all_day, notes, source, color)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO events (id, title, start_time, end_time, all_day, notes, source, color, completed)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       id,
       title,
@@ -95,7 +103,8 @@ router.post('/', (req, res) => {
       all_day ? 1 : 0,
       notes || '',
       source || 'manual',
-      color || '#3b82f6'
+      color || '#3b82f6',
+      completed ? 1 : 0
     );
 
     const event = db.prepare('SELECT * FROM events WHERE id = ?').get(id);
@@ -109,7 +118,15 @@ router.post('/', (req, res) => {
 
 // 更新日程
 router.put('/:id', (req, res) => {
-  const { title, start_time, end_time, all_day, notes, source, color } = req.body;
+  let { title, start_time, end_time, all_day, notes, source, color, completed } = req.body;
+
+  // 防呆：结束时间早于开始时间时自动交换
+  if (start_time && end_time && start_time > end_time) {
+    const tmp = start_time;
+    start_time = end_time;
+    end_time = tmp;
+  }
+
   const db = getDb();
   try {
     const existing = db.prepare('SELECT * FROM events WHERE id = ?').get(req.params.id);
@@ -126,6 +143,7 @@ router.put('/:id', (req, res) => {
         notes = COALESCE(?, notes),
         source = COALESCE(?, source),
         color = COALESCE(?, color),
+        completed = COALESCE(?, completed),
         updated_at = datetime('now')
       WHERE id = ?
     `).run(
@@ -136,8 +154,32 @@ router.put('/:id', (req, res) => {
       notes,
       source,
       color,
+      completed !== undefined ? (completed ? 1 : 0) : null,
       req.params.id
     );
+
+    const event = db.prepare('SELECT * FROM events WHERE id = ?').get(req.params.id);
+    res.json({ success: true, data: event });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  } finally {
+    db.close();
+  }
+});
+
+// 切换完成状态
+router.put('/:id/toggle-complete', (req, res) => {
+  const db = getDb();
+  try {
+    const existing = db.prepare('SELECT * FROM events WHERE id = ?').get(req.params.id);
+    if (!existing) {
+      return res.status(404).json({ success: false, message: '日程不存在' });
+    }
+
+    const newCompleted = existing.completed ? 0 : 1;
+    db.prepare(`
+      UPDATE events SET completed = ?, updated_at = datetime('now') WHERE id = ?
+    `).run(newCompleted, req.params.id);
 
     const event = db.prepare('SELECT * FROM events WHERE id = ?').get(req.params.id);
     res.json({ success: true, data: event });

@@ -2,7 +2,8 @@ import { Router } from 'express';
 import {
   getRules, getRule, createRule, updateRule, deleteRule, toggleRule,
   getTags, createTag, deleteTag, getEmailTags, addEmailTag, removeEmailTag,
-  getRuleTemplates, ruleEngine
+  getRuleTemplates, ruleEngine,
+  getAdWhitelist, addToAdWhitelist, removeFromAdWhitelist
 } from '../services/rules.js';
 
 const router = Router();
@@ -164,6 +165,42 @@ router.post('/emails/:emailId/tags', (req, res) => {
 router.delete('/emails/:emailId/tags/:tagId', (req, res) => {
   try {
     removeEmailTag(req.params.emailId, req.params.tagId);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// ===== 广告白名单 =====
+
+// 获取白名单列表
+router.get('/ad-whitelist', (req, res) => {
+  try {
+    const list = getAdWhitelist();
+    res.json({ success: true, data: list });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// 添加白名单
+router.post('/ad-whitelist', (req, res) => {
+  try {
+    const { from_address, note } = req.body;
+    if (!from_address) {
+      return res.status(400).json({ success: false, message: '发件人地址不能为空' });
+    }
+    const item = addToAdWhitelist(from_address, note);
+    res.json({ success: true, data: item });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// 移除白名单
+router.delete('/ad-whitelist/:address', (req, res) => {
+  try {
+    removeFromAdWhitelist(req.params.address);
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

@@ -1,10 +1,10 @@
 <template>
   <div class="h-full flex flex-col">
     <!-- Header -->
-    <header class="bg-paper border-b border-line-soft px-6 py-4">
+    <header class="page-header">
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-4">
-          <h1 class="text-display text-ink font-serif">收件箱</h1>
+          <h1 class="page-title">收件箱</h1>
           <select
             v-model="selectedAccount"
             class="select w-36 text-xs py-1.5"
@@ -111,11 +111,59 @@
       </div>
     </header>
 
+    <div
+      v-if="selectedIds.length > 0"
+      class="sticky top-0 z-10 bg-paper/95 backdrop-blur border-b border-line-soft px-6 py-3"
+    >
+      <div class="flex items-center justify-between gap-4">
+        <div class="flex items-center flex-wrap gap-3">
+          <span class="text-xs font-mono text-ink-faint">已选 {{ selectedIds.length }} 封</span>
+          <button @click="batchMarkRead" class="btn btn-secondary btn-sm">标记已读</button>
+          <button @click="batchMarkUnread" class="btn btn-secondary btn-sm">标记未读</button>
+          <button @click="batchDelete" class="btn btn-danger btn-sm">删除</button>
+          <button @click="clearSelection" class="btn btn-ghost btn-sm">取消</button>
+        </div>
+        <div v-if="pagination.pages > 1" class="flex items-center gap-2 text-xs font-mono text-ink-faint">
+          <span>{{ pagination.total }} 封 / {{ pagination.page }}-{{ pagination.pages }}</span>
+          <button
+            @click="goToPage(pagination.page - 1)"
+            :disabled="!canPrevPage()"
+            class="btn btn-secondary btn-sm disabled:opacity-30"
+          >上一页</button>
+          <button
+            @click="goToPage(pagination.page + 1)"
+            :disabled="!canNextPage()"
+            class="btn btn-secondary btn-sm disabled:opacity-30"
+          >下一页</button>
+        </div>
+      </div>
+    </div>
+
+    <div v-else-if="pagination.pages > 1" class="px-6 py-3 border-b border-line-soft bg-paper/70">
+      <div class="flex items-center justify-between gap-4">
+        <div class="text-xs font-mono text-ink-faint">
+          {{ pagination.total }} 封 / {{ pagination.page }}-{{ pagination.pages }}
+        </div>
+        <div class="flex space-x-2">
+          <button
+            @click="goToPage(pagination.page - 1)"
+            :disabled="!canPrevPage()"
+            class="btn btn-secondary btn-sm disabled:opacity-30"
+          >上一页</button>
+          <button
+            @click="goToPage(pagination.page + 1)"
+            :disabled="!canNextPage()"
+            class="btn btn-secondary btn-sm disabled:opacity-30"
+          >下一页</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Email list -->
     <div class="flex-1 overflow-y-auto overflow-x-hidden">
       <!-- Loading -->
       <div v-if="loading" class="flex items-center justify-center h-64">
-        <div class="w-5 h-5 border-2 border-line-soft border-t-ink rounded-full animate-spin" />
+        <div class="spinner" />
       </div>
 
       <!-- Empty state -->
@@ -288,26 +336,15 @@
         <div class="flex space-x-2">
           <button
             @click="goToPage(pagination.page - 1)"
-            :disabled="pagination.page <= 1"
+            :disabled="!canPrevPage()"
             class="btn btn-secondary btn-sm disabled:opacity-30"
           >上一页</button>
           <button
             @click="goToPage(pagination.page + 1)"
-            :disabled="pagination.page >= pagination.pages"
+            :disabled="!canNextPage()"
             class="btn btn-secondary btn-sm disabled:opacity-30"
           >下一页</button>
         </div>
-      </div>
-    </div>
-
-    <!-- Batch action bar -->
-    <div v-if="selectedIds.length > 0" class="bg-paper border-t border-line-soft px-6 py-3">
-      <div class="flex items-center space-x-4">
-        <span class="text-xs font-mono text-ink-faint">已选 {{ selectedIds.length }} 封</span>
-        <button @click="batchMarkRead" class="btn btn-secondary btn-sm">标记已读</button>
-        <button @click="batchMarkUnread" class="btn btn-secondary btn-sm">标记未读</button>
-        <button @click="batchDelete" class="btn btn-danger btn-sm">删除</button>
-        <button @click="clearSelection" class="btn btn-ghost btn-sm">取消</button>
       </div>
     </div>
   </div>
@@ -317,7 +354,7 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { emailsApi, accountsApi, tagsApi, codesApi } from '@/api';
-import { formatAccountName, formatAccountFull, getAvatarChar } from '@/utils/display';
+import { formatAccountName, formatAccountFull, getAvatarChar, formatTime } from '@/utils/display';
 import { useDialog } from '@/composables/useDialog';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -421,20 +458,6 @@ const filters = [
   { key: 'archived', label: '已归档' },
 ];
 
-const formatTime = (dateStr) => {
-  if (!dateStr) return '';
-  const date = dayjs(dateStr);
-  const now = dayjs();
-  if (date.isSame(now, 'day')) {
-    return date.format('HH:mm');
-  } else if (date.isSame(now.subtract(1, 'day'), 'day')) {
-    return '昨天';
-  } else if (date.isSame(now, 'year')) {
-    return date.format('M/D');
-  } else {
-    return date.format('YY/M/D');
-  }
-};
 
 // 清理预览文本中的HTML残留和格式噪音
 const cleanPreview = (text) => {
@@ -524,6 +547,9 @@ const goToPage = (page) => {
   pagination.value.page = page;
   loadEmails();
 };
+
+const canPrevPage = () => pagination.value.page > 1;
+const canNextPage = () => pagination.value.page < pagination.value.pages;
 
 const openEmail = async (email) => {
   // 立即更新本地未读状态（乐观更新）

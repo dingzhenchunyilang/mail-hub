@@ -153,6 +153,21 @@ export function initDb() {
     )
   `);
 
+  // 翻译缓存表
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS translation_cache (
+      id TEXT PRIMARY KEY,
+      email_id TEXT NOT NULL,
+      target_lang TEXT NOT NULL,
+      source_lang TEXT,
+      translated_paragraphs TEXT NOT NULL,
+      provider TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      UNIQUE(email_id, target_lang),
+      FOREIGN KEY (email_id) REFERENCES emails(id) ON DELETE CASCADE
+    )
+  `);
+
   // 创建索引
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_emails_account ON emails(account_id);
@@ -169,6 +184,22 @@ export function initDb() {
     CREATE INDEX IF NOT EXISTS idx_detected_codes_email ON detected_codes(email_id);
     CREATE INDEX IF NOT EXISTS idx_detected_codes_time ON detected_codes(detected_at DESC);
     CREATE INDEX IF NOT EXISTS idx_ignored_senders_addr ON ignored_senders(from_address);
+    CREATE INDEX IF NOT EXISTS idx_translation_email ON translation_cache(email_id);
+    CREATE INDEX IF NOT EXISTS idx_translation_lang ON translation_cache(target_lang);
+  `);
+
+  // 广告白名单发件人表
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS ad_whitelist (
+      id TEXT PRIMARY KEY,
+      from_address TEXT NOT NULL UNIQUE,
+      note TEXT DEFAULT '',
+      created_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_ad_whitelist_addr ON ad_whitelist(from_address);
   `);
 
   // 阶段三：日程表
@@ -182,6 +213,7 @@ export function initDb() {
       notes TEXT DEFAULT '',
       source TEXT DEFAULT 'manual',
       color TEXT DEFAULT '#3b82f6',
+      completed INTEGER DEFAULT 0,
       created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now'))
     )
@@ -192,6 +224,10 @@ export function initDb() {
     CREATE INDEX IF NOT EXISTS idx_events_source ON events(source);
   `);
 
+  // 迁移：给 events 表添加 completed 字段（已有表不会自动加）
+  try {
+    db.exec('ALTER TABLE events ADD COLUMN completed INTEGER DEFAULT 0');
+  } catch (e) { /* 字段已存在则忽略 */ }
   console.log('Database initialized successfully');
   db.close();
 }

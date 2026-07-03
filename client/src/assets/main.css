@@ -261,6 +261,8 @@
 /* ── 日程样式 ── */
 .ai-suggestion { border: 1.5px dashed var(--stamp-red); }
 .manual-event  { border: 1.5px solid var(--ink); }
+.event-completed { opacity: 0.55; text-decoration: line-through; text-decoration-color: var(--stamp-red); }
+.stamp-btn { font-family: 'IBM Plex Mono', monospace; font-size: 9px; }
 
 /* ── 索引卡撕边（收藏夹） ── */
 .index-card { position: relative; }

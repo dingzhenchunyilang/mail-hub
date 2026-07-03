@@ -36,7 +36,7 @@
     <div class="flex-1 overflow-hidden flex">
       <!-- 表单 -->
       <div class="flex-1 overflow-y-auto px-6 py-4">
-        <div class="max-w-5xl mx-auto">
+        <div class="max-w-5xl 2xl:max-w-7xl mx-auto">
           <div class="card">
             <!-- 发件账号 -->
             <div class="form-field px-6 first:pt-6">
@@ -123,7 +123,7 @@
               </div>
               <textarea
                 v-model="form.text"
-                class="textarea min-h-[300px]"
+                class="textarea min-h-[300px] 2xl:min-h-[500px]"
                 placeholder="输入邮件内容..."
               ></textarea>
               <div v-if="aiLoading" class="mt-2 flex items-center text-xs text-stamp-red font-mono">
@@ -144,7 +144,7 @@
       </div>
 
       <!-- 联系人侧边栏 -->
-      <div class="w-64 border-l border-line-soft bg-paper-dim overflow-y-auto">
+      <div class="w-64 2xl:w-80 border-l border-line-soft bg-paper-dim overflow-y-auto">
         <div class="p-4">
           <h3 class="section-title mb-3">最近联系人</h3>
 

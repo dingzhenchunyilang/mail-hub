@@ -60,6 +60,10 @@ export const rulesApi = {
   toggle: (id) => api.put(`/rules/${id}/toggle`),
   templates: () => api.get('/rules/templates'),
   applyAll: () => api.post('/rules/apply-all'),
+  // 广告白名单
+  getWhitelist: () => api.get('/ad-whitelist'),
+  addWhitelist: (from_address, note) => api.post('/ad-whitelist', { from_address, note }),
+  removeWhitelist: (address) => api.delete(`/ad-whitelist/${encodeURIComponent(address)}`),
 };
 
 // 标签相关 API
@@ -90,6 +94,7 @@ export const eventsApi = {
   update: (id, data) => api.put(`/events/${id}`, data),
   delete: (id) => api.delete(`/events/${id}`),
   upcoming: () => api.get('/events/upcoming'),
+  toggleComplete: (id) => api.put(`/events/${id}/toggle-complete`),
 };
 
 // AI 相关 API（长超时，推理模型响应慢）
@@ -120,6 +125,18 @@ export const settingsApi = {
   get: () => api.get('/settings'),
   update: (data) => api.put('/settings', data),
   test: () => api.post('/settings/test'),
+  testTranslation: () => api.post('/settings/test-translation'),
+};
+
+// 翻译 API（长超时，翻译大邮件耗时较长）
+export const translationApi = {
+  status: () => api.get('/translation/status'),
+  translate: (email_id, target_lang, force_refresh = false) =>
+    aiAxios.post('/translation/translate', { email_id, target_lang, force_refresh }),
+  getCached: (email_id, target_lang) =>
+    api.get(`/translation/cache/${email_id}/${target_lang}`),
+  clearCache: (email_id, target_lang) =>
+    api.delete(`/translation/cache/${email_id}/${target_lang || ''}`),
 };
 
 // 验证码相关 API

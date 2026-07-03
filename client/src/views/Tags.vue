@@ -1,10 +1,10 @@
 <template>
   <div class="h-full flex flex-col">
     <!-- Header -->
-    <header class="bg-paper border-b border-line-soft px-6 py-4">
+    <header class="page-header">
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-display text-ink font-serif">标签管理</h1>
+          <h1 class="page-title">标签管理</h1>
           <p class="text-xs text-ink-faint mt-1 font-mono">管理邮件标签，标签由规则自动生成或手动添加</p>
         </div>
         <button @click="showCreateModal = true" class="btn btn-primary">
@@ -19,7 +19,7 @@
     <!-- Tags list -->
     <div class="flex-1 overflow-y-auto p-6">
       <div v-if="loading" class="flex items-center justify-center h-64">
-        <div class="w-5 h-5 border-2 border-line-soft border-t-ink rounded-full animate-spin" />
+        <div class="spinner" />
       </div>
 
       <div v-else-if="tags.length === 0" class="flex flex-col items-center justify-center h-64 text-ink-faint">
