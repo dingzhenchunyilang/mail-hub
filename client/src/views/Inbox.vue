@@ -690,7 +690,7 @@ const loadEmails = async () => {
 
     if (filter.value === 'archived') {
       params.is_archived = 1;
-    } else if (filter.value !== 'starred') {
+    } else {
       params.is_archived = 0;
     }
 
