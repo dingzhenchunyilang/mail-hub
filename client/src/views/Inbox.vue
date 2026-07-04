@@ -1,8 +1,8 @@
 <template>
   <div class="h-full flex flex-col overflow-hidden">
-    <header class="page-header pb-2">
-      <div class="card mail-command-strip p-3 lg:p-3">
-        <div class="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+    <header class="page-header pb-1.5">
+      <div class="card mail-command-strip p-2.5 lg:p-2.5">
+        <div class="flex flex-col gap-2.5 xl:flex-row xl:items-start xl:justify-between">
           <div class="flex flex-wrap items-center gap-3">
             <div class="flex flex-wrap items-end gap-3">
               <h1 class="page-title">收件箱</h1>
@@ -23,8 +23,8 @@
           </div>
         </div>
 
-        <div class="mt-3 grid gap-2.5 xl:grid-cols-[minmax(0,1fr)_auto]">
-          <div class="grid gap-2.5 lg:grid-cols-[9rem_minmax(0,1fr)]">
+        <div class="mt-2.5 grid gap-2 xl:grid-cols-[minmax(0,1fr)_auto]">
+          <div class="grid gap-2 lg:grid-cols-[9rem_minmax(0,1fr)]">
             <label class="block">
               <span class="label">账号范围</span>
               <select
@@ -98,7 +98,7 @@
           </div>
         </div>
 
-        <div class="mt-2.5 flex flex-col gap-2 border-t border-line-soft pt-2.5 xl:flex-row xl:items-center xl:justify-between">
+        <div class="mt-2 flex flex-col gap-2 border-t border-line-soft pt-2 xl:flex-row xl:items-center xl:justify-between">
           <div class="flex flex-wrap gap-2">
             <button
               v-for="f in filters"
@@ -123,11 +123,14 @@
       </div>
     </header>
 
-    <section class="flex-1 min-h-0 px-4 pb-4 lg:px-6 lg:pb-5">
+    <section class="flex-1 min-h-0 px-4 pb-2 lg:px-6 lg:pb-2">
       <div ref="tableShellRef" class="mail-table-shell">
         <div ref="tableToolbarRef" class="flex flex-wrap items-center justify-between gap-3 border-b border-line-soft px-4 py-2.5">
           <div v-if="selectedIds.length > 0" class="mail-summary-line">
             <span class="badge">已选 {{ selectedIds.length }} 封</span>
+            <button @click="toggleSelectPage" class="btn btn-secondary btn-sm">
+              {{ allPageSelected ? '取消本页' : '全选本页' }}
+            </button>
             <button @click="batchMarkRead" class="btn btn-secondary btn-sm">标记已读</button>
             <button @click="batchMarkUnread" class="btn btn-secondary btn-sm">标记未读</button>
             <button @click="batchDelete" class="btn btn-danger btn-sm">删除</button>
@@ -138,6 +141,9 @@
             <span class="data-chip">第 {{ pagination.page }} / {{ pagination.pages || 1 }} 页</span>
             <span v-if="selectedTag" class="data-chip">标签 {{ selectedTag }}</span>
             <span v-if="searchQuery" class="data-chip">搜索 {{ searchQuery }}</span>
+            <button @click="toggleSelectPage" class="btn btn-secondary btn-sm">
+              {{ allPageSelected ? '取消本页' : '全选本页' }}
+            </button>
           </div>
 
           <div class="flex items-center gap-2">
@@ -227,7 +233,15 @@
             class="mail-list-header hidden lg:grid items-center gap-x-3"
             style="grid-template-columns: 1.5rem 1.2rem 1.5rem 5.4rem 7.6rem minmax(0,1fr) 1rem 4rem 2.5rem"
           >
-            <span></span>
+            <label class="flex items-center justify-center" @click.stop>
+              <input
+                type="checkbox"
+                :checked="allPageSelected"
+                :aria-label="allPageSelected ? '取消选择本页邮件' : '选择本页全部邮件'"
+                @change="toggleSelectPage"
+                class="h-3.5 w-3.5 cursor-pointer rounded border border-line-soft bg-paper text-stamp-red accent-[var(--stamp-red)]"
+              />
+            </label>
             <span></span>
             <span></span>
             <span>账号</span>
@@ -464,6 +478,13 @@ const heroMetrics = computed(() => [
   },
 ]);
 
+const currentPageIds = computed(() => emails.value.map((email) => email.id));
+
+const allPageSelected = computed(() => {
+  if (currentPageIds.value.length === 0) return false;
+  return currentPageIds.value.every((id) => selectedIds.value.includes(id));
+});
+
 const filters = [
   { key: 'all', label: '全部' },
   { key: 'unread', label: '未读' },
@@ -494,7 +515,7 @@ const getMeasuredLimit = () => {
     const columnsHeight = desktopColumnsRef.value?.offsetHeight || 0;
     const firstRow = desktopListRef.value?.querySelector('.mail-list-row');
     const rowHeight = firstRow?.offsetHeight || 56;
-    const availableHeight = shellHeight - toolbarHeight - columnsHeight - 2;
+    const availableHeight = shellHeight - toolbarHeight - columnsHeight;
 
     if (availableHeight <= 0) return null;
     return Math.max(5, Math.min(15, Math.floor(availableHeight / rowHeight)));
@@ -504,7 +525,7 @@ const getMeasuredLimit = () => {
   const toolbarHeight = tableToolbarRef.value?.offsetHeight || 0;
   const firstCard = mobileListRef.value?.querySelector('.mail-mobile-card');
   const rowHeight = firstCard?.offsetHeight ? firstCard.offsetHeight + 12 : 138;
-  const availableHeight = shellHeight - toolbarHeight - 24;
+  const availableHeight = shellHeight - toolbarHeight - 12;
 
   if (availableHeight <= 0) return null;
   return Math.max(3, Math.min(7, Math.floor(availableHeight / rowHeight)));
@@ -524,8 +545,8 @@ const syncPageLimitFromViewport = () => {
   }
 
   const isDesktop = window.innerWidth >= 1024;
-  const availableHeight = window.innerHeight - (isDesktop ? 296 : 404);
-  const rowHeight = isDesktop ? 56 : 138;
+  const availableHeight = window.innerHeight - (isDesktop ? 284 : 392);
+  const rowHeight = isDesktop ? 54 : 134;
   const maxRows = isDesktop ? 12 : 6;
   const nextLimit = Math.max(4, Math.min(maxRows, Math.floor(availableHeight / rowHeight)));
 
@@ -665,8 +686,13 @@ const loadEmails = async () => {
     const params = {
       page: pagination.value.page,
       limit: pagination.value.limit,
-      is_archived: filter.value === 'archived' ? 1 : 0,
     };
+
+    if (filter.value === 'archived') {
+      params.is_archived = 1;
+    } else if (filter.value !== 'starred') {
+      params.is_archived = 0;
+    }
 
     if (selectedAccount.value) params.account_id = selectedAccount.value;
     if (filter.value === 'unread') params.is_read = 0;
@@ -692,6 +718,8 @@ const loadEmails = async () => {
       } else {
         emails.value = emailsWithTags;
       }
+
+      selectedIds.value = selectedIds.value.filter((id) => emails.value.some((email) => email.id === id));
 
       pagination.value = {
         ...result.pagination,
@@ -753,6 +781,20 @@ const toggleSelect = (id) => {
 
 const clearSelection = () => {
   selectedIds.value = [];
+};
+
+const toggleSelectPage = () => {
+  const ids = currentPageIds.value;
+  if (ids.length === 0) return;
+
+  if (allPageSelected.value) {
+    selectedIds.value = selectedIds.value.filter((id) => !ids.includes(id));
+    return;
+  }
+
+  const nextSelected = new Set(selectedIds.value);
+  ids.forEach((id) => nextSelected.add(id));
+  selectedIds.value = Array.from(nextSelected);
 };
 
 const toggleStar = async (email) => {

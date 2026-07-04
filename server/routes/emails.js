@@ -110,7 +110,7 @@ router.get('/', (req, res) => {
     folder = 'INBOX',
     is_read,
     is_starred,
-    is_archived = 0,
+    is_archived,
     search,
     sort = 'received_at',
     order = 'DESC'
