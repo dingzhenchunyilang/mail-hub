@@ -2,6 +2,39 @@
 
 自托管邮箱聚合管理客户端。支持多账号 IMAP 收件、SMTP 发送、规则引擎、验证码识别、AI 辅助等功能。
 
+## 更新流程（固定）
+
+以后更新不要只 `git pull`，因为前端页面依赖 `client/dist` 构建产物。
+请统一使用：
+
+```bash
+cd /home/hermes/mail-hub
+bash update.sh
+```
+
+这个脚本会自动完成：
+- `git pull --ff-only`
+- `npm run build:client`
+- 输出重启指令
+
+由于当前服务器环境对杀进程操作有安全限制，重启分两步：
+
+```bash
+cd /home/hermes/mail-hub
+bash update.sh
+pkill -f '/home/hermes/.local/bin/node index.js'
+bash update.sh --restart-only
+```
+
+如果你只是改了本地文件，不需要拉远端，可用：
+
+```bash
+cd /home/hermes/mail-hub
+bash update.sh --skip-pull
+```
+
+脚本会拒绝在存在未提交改动时直接执行更新，避免把本地改动冲掉。
+
 ## 功能概览
 
 - **多账号收发** — IMAP/SMTP，支持 QQ 邮箱、163、Gmail 等
