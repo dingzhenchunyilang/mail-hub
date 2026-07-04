@@ -182,24 +182,24 @@ onMounted(loadRecords);
   justify-content: center;
   width: 2rem;
   height: 2rem;
-  border-radius: 0.375rem;
-  color: var(--ink-faint, #8C8878);
+  border-radius: 0.75rem;
+  color: var(--sidebar-muted, #94a3b8);
   border: 1px solid transparent;
   background: transparent;
   cursor: pointer;
   transition: all 0.15s;
 }
 .code-trigger:hover {
-  color: var(--ink, #1A1A1A);
-  background: var(--paper-dim, #F0EFEA);
-  border-color: var(--line-soft, #D9D6CC);
+  color: var(--sidebar-ink, #f8fafc);
+  background: rgba(148, 163, 184, 0.12);
+  border-color: var(--sidebar-line, rgba(148, 163, 184, 0.16));
 }
 .code-trigger--active {
-  color: var(--ink, #1A1A1A);
-  background: var(--paper-dim, #F0EFEA);
-  border-color: var(--ink, #1A1A1A);
+  color: var(--sidebar-ink, #f8fafc);
+  background: rgba(37, 99, 235, 0.2);
+  border-color: rgba(96, 165, 250, 0.22);
 }
-.code-trigger--has-new { color: var(--stamp-red, #C1432E); }
+.code-trigger--has-new { color: var(--sidebar-ink, #f8fafc); }
 
 .code-trigger__badge {
   position: absolute;
@@ -209,9 +209,9 @@ onMounted(loadRecords);
   height: 14px;
   font-size: 9px;
   font-weight: 600;
-  font-family: 'IBM Plex Mono', monospace;
-  background: var(--stamp-red, #C1432E);
-  color: var(--paper, #FAFAF7);
+  font-family: 'JetBrains Mono', monospace;
+  background: var(--accent, #2563eb);
+  color: #f8fbff;
   border-radius: 7px;
   display: flex;
   align-items: center;
@@ -228,7 +228,7 @@ onMounted(loadRecords);
   z-index: 50;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+  box-shadow: var(--shadow-panel, 0 24px 60px rgba(15, 23, 42, 0.1));
 }
 
 .code-panel__header {
@@ -240,11 +240,11 @@ onMounted(loadRecords);
 }
 
 .code-panel__title {
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'JetBrains Mono', monospace;
   font-size: 0.6875rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--ink-faint, #8C8878);
+  color: var(--ink-faint, #64748b);
   font-weight: 500;
 }
 
@@ -280,7 +280,7 @@ onMounted(loadRecords);
 }
 
 .code-panel__code {
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'JetBrains Mono', monospace;
   font-size: 1.125rem;
   font-weight: 700;
   letter-spacing: 0.08em;

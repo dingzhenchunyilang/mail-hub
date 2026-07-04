@@ -1,105 +1,104 @@
 <template>
   <div class="h-full flex flex-col">
-    <!-- Header -->
-    <header class="bg-paper border-b border-line-soft px-6 py-3">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center space-x-4">
-          <button @click="goBack" class="btn btn-ghost btn-sm">
-            <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-            </svg>
-            返回
-          </button>
-          <h1 class="text-lg font-serif font-semibold text-ink truncate max-w-lg 2xl:max-w-2xl">{{ email.subject }}</h1>
-        </div>
+    <header class="page-header pb-3">
+      <div class="card flex flex-col gap-4 p-5 lg:p-5">
+        <div class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <div class="flex min-w-0 items-center gap-3">
+            <button @click="goBack" class="btn btn-ghost btn-sm">
+              <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+              </svg>
+              返回
+            </button>
+            <div class="min-w-0">
+              <h1 class="max-w-lg truncate text-xl font-semibold tracking-[-0.03em] text-ink 2xl:max-w-2xl">{{ email.subject }}</h1>
+            </div>
+          </div>
 
-        <div class="flex items-center space-x-2">
-          <button @click="reply" class="btn btn-secondary btn-sm">
-            <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
-            </svg>
-            回复
-          </button>
-          <button @click="forward" class="btn btn-secondary btn-sm">
-            <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15 15l6-6m0 0l-6-6m6 6H9a6 6 0 000 12h3" />
-            </svg>
-            转发
-          </button>
-          <button @click="toggleStar" class="btn btn-ghost btn-sm">
-            <svg
-              :class="['w-4 h-4', email.is_starred ? 'text-stamp-red' : '']"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              stroke-width="1.5"
-            >
-              <path v-if="email.is_starred" stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z" />
-              <path v-else stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
-            </svg>
-          </button>
-          <button @click="archiveEmail" class="btn btn-ghost btn-sm">
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
-            </svg>
-          </button>
-          <button @click="deleteEmail" class="btn btn-danger btn-sm">
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-            </svg>
-          </button>
+          <div class="toolbar-actions">
+            <button @click="reply" class="btn btn-secondary btn-sm">
+              <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
+              </svg>
+              回复
+            </button>
+            <button @click="forward" class="btn btn-secondary btn-sm">
+              <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 15l6-6m0 0l-6-6m6 6H9a6 6 0 000 12h3" />
+              </svg>
+              转发
+            </button>
+            <button @click="toggleStar" class="btn btn-ghost btn-sm">
+              <svg
+                :class="['w-4 h-4', email.is_starred ? 'text-stamp-red' : '']"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <path v-if="email.is_starred" stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z" />
+                <path v-else stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+              </svg>
+            </button>
+            <button @click="archiveEmail" class="btn btn-ghost btn-sm">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+              </svg>
+            </button>
+            <button @click="deleteEmail" class="btn btn-danger btn-sm">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+              </svg>
+            </button>
 
           <!-- AI buttons -->
-          <div v-if="aiConfigured" class="border-l border-line-soft pl-2 ml-2 flex space-x-2">
-            <button
-              @click="summarizeEmail"
-              :disabled="aiLoading"
-              class="btn btn-secondary btn-sm"
-            >
-              <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
-              </svg>
-              摘要
-            </button>
-            <button
-              @click="draftReply"
-              :disabled="aiLoading"
-              class="btn btn-secondary btn-sm"
-            >
-              AI 回复
-            </button>
-            <button
-              @click="extractEvents"
-              :disabled="aiLoading"
-              class="btn btn-secondary btn-sm"
-            >
-              识别日程
-            </button>
+            <div v-if="aiConfigured" class="ml-1 flex flex-wrap items-center gap-2 border-l border-line-soft pl-3">
+              <button
+                @click="summarizeEmail"
+                :disabled="aiLoading"
+                class="btn btn-secondary btn-sm"
+              >
+                <svg class="mr-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
+                </svg>
+                摘要
+              </button>
+              <button
+                @click="draftReply"
+                :disabled="aiLoading"
+                class="btn btn-secondary btn-sm"
+              >
+                AI 回复
+              </button>
+              <button
+                @click="extractEvents"
+                :disabled="aiLoading"
+                class="btn btn-secondary btn-sm"
+              >
+                识别日程
+              </button>
+            </div>
           </div>
         </div>
       </div>
     </header>
 
-    <!-- Loading -->
     <div v-if="loading" class="flex-1 flex items-center justify-center">
       <div class="spinner" />
     </div>
 
-    <!-- Content -->
-    <div v-else-if="email.id" class="flex-1 overflow-y-auto p-6">
+    <div v-else-if="email.id" class="flex-1 overflow-y-auto p-5 lg:p-6">
       <div class="max-w-4xl 2xl:max-w-6xl mx-auto">
-        <!-- Email header card -->
-        <div class="card p-6 mb-5">
-          <h2 class="text-xl font-serif font-semibold text-ink mb-3">{{ email.subject }}</h2>
-          <div class="flex items-center space-x-3 mb-4">
+        <div class="card mb-5 p-6">
+          <h2 class="mb-3 text-xl font-semibold tracking-[-0.03em] text-ink">{{ email.subject }}</h2>
+          <div class="mb-4 flex items-center space-x-3">
             <span class="badge text-[10px]">{{ formatAccountName(email.account_name, email.account_email) }}</span>
             <span class="text-xs font-mono text-ink-faint">{{ formatDate(email.received_at) }}</span>
           </div>
 
-          <!-- Sender info -->
-          <div class="flex items-center p-3 bg-paper-dim rounded-card">
-            <div class="w-9 h-9 rounded-full border border-line-soft flex items-center justify-center mr-3">
-              <span class="text-ink font-serif font-semibold text-sm">
+          <div class="mail-detail-meta flex items-center rounded-card border border-line-soft p-3">
+            <div class="mr-3 flex h-9 w-9 items-center justify-center rounded-full border border-line-soft">
+              <span class="text-sm font-semibold text-ink">
                 {{ getAvatarChar(email.from_name || email.from_address) }}
               </span>
             </div>
@@ -112,9 +111,8 @@
             </div>
           </div>
 
-          <!-- Tags -->
           <div class="mt-4 pt-3 border-t border-line-soft">
-            <div class="flex items-center justify-between mb-2">
+            <div class="mb-2 flex items-center justify-between">
               <span class="section-title">标签</span>
               <button @click="showTagModal = true" class="text-xs font-mono text-ink-faint hover:text-ink">+ 添加</button>
             </div>
@@ -122,14 +120,13 @@
               <span
                 v-for="tag in emailTags"
                 :key="tag.id"
-                class="inline-flex items-center px-2 py-0.5 rounded-card text-[11px] font-mono border border-line-soft text-ink-faint"
+                class="mail-detail-tag inline-flex items-center px-2 py-0.5 rounded-card text-[11px] font-mono border border-line-soft text-ink-faint"
               >
                 {{ tag.name }}
                 <button @click="removeTag(tag)" class="ml-1.5 text-ink-faint hover:text-stamp-red">&times;</button>
               </span>
               <span v-if="emailTags.length === 0" class="text-xs text-ink-faint">暂无标签</span>
             </div>
-            <!-- 广告白名单快捷按钮 -->
             <div v-if="hasAdTag" class="mt-2 pt-2 border-t border-line-soft">
               <button
                 @click="whitelistSender"
@@ -141,34 +138,33 @@
           </div>
         </div>
 
-        <!-- Translation view mode toggle -->
         <div v-if="translationResult" class="card mb-4 flex items-center justify-between px-4 py-2">
           <div class="flex items-center space-x-1">
             <button
               @click="viewMode = 'original'"
               :class="[
-                'px-3 py-1 rounded-card text-xs font-mono transition-colors',
+                'mail-view-tab px-3 py-1 rounded-card text-xs font-mono transition-colors',
                 viewMode === 'original'
-                  ? 'bg-ink text-paper'
-                  : 'text-ink-faint hover:text-ink hover:bg-paper-dim'
+                  ? 'is-active'
+                  : 'text-ink-faint hover:text-ink'
               ]"
             >仅原文</button>
             <button
               @click="viewMode = 'parallel'"
               :class="[
-                'px-3 py-1 rounded-card text-xs font-mono transition-colors',
+                'mail-view-tab px-3 py-1 rounded-card text-xs font-mono transition-colors',
                 viewMode === 'parallel'
-                  ? 'bg-ink text-paper'
-                  : 'text-ink-faint hover:text-ink hover:bg-paper-dim'
+                  ? 'is-active'
+                  : 'text-ink-faint hover:text-ink'
               ]"
             >对照</button>
             <button
               @click="viewMode = 'translated'"
               :class="[
-                'px-3 py-1 rounded-card text-xs font-mono transition-colors',
+                'mail-view-tab px-3 py-1 rounded-card text-xs font-mono transition-colors',
                 viewMode === 'translated'
-                  ? 'bg-ink text-paper'
-                  : 'text-ink-faint hover:text-ink hover:bg-paper-dim'
+                  ? 'is-active'
+                  : 'text-ink-faint hover:text-ink'
               ]"
             >仅译文</button>
           </div>
@@ -182,82 +178,69 @@
           </div>
         </div>
 
-        <!-- Translation loading skeleton -->
         <div v-if="translating && !translationResult" class="card p-6">
           <div class="space-y-4">
-            <div v-for="i in 6" :key="i" class="h-4 bg-paper-dim rounded animate-pulse" :style="{ width: `${90 - i * 10}%` }" />
+            <div v-for="i in 6" :key="i" class="mail-translation-skeleton h-4 rounded animate-pulse" :style="{ width: `${90 - i * 10}%` }" />
           </div>
           <p class="text-xs font-mono text-ink-faint mt-4">翻译中，请稍候...</p>
         </div>
 
-        <!-- Email body - original mode -->
         <div v-else-if="!translationResult || viewMode === 'original'" class="card p-6">
           <div v-if="email.body_html" class="prose prose-sm max-w-none email-content" v-html="sanitizedHtml" />
           <div v-else class="whitespace-pre-wrap text-sm text-ink leading-relaxed">{{ email.body_text }}</div>
         </div>
 
-        <!-- Parallel view (desktop: side-by-side, mobile: alternating) -->
         <div v-else-if="viewMode === 'parallel' && translationResult" class="card overflow-hidden">
-          <!-- Desktop: side-by-side -->
           <div class="hidden md:grid md:grid-cols-2">
-            <!-- Original column -->
-            <div class="p-6 space-y-4 border-r border-line-soft">
+            <div class="mail-reading-pane p-6 space-y-4 border-r border-line-soft">
               <div
                 v-for="(para, i) in translationResult.paragraphs"
                 :key="'o-' + i"
                 class="relative"
               >
-                <span class="absolute -top-3 left-0 text-[9px] font-mono text-ink-faint bg-paper px-1 select-none">原文</span>
+                <span class="mail-pane-label absolute -top-3 left-0 text-[9px] font-mono text-ink-faint px-1 select-none">原文</span>
                 <div class="text-sm text-ink leading-relaxed translation-para" v-html="para.original_html" />
               </div>
             </div>
-            <!-- Translated column -->
-            <div class="p-6 space-y-4">
+            <div class="mail-reading-pane p-6 space-y-4">
               <div
                 v-for="(para, i) in translationResult.paragraphs"
                 :key="'t-' + i"
-                class="relative pl-3"
-                style="border-left: 2px solid var(--ink-faint);"
+                class="mail-reading-block relative rounded-card p-4"
               >
-                <span class="absolute -top-3 left-3 text-[9px] font-mono text-ink-faint bg-paper px-1 select-none">译文</span>
+                <span class="mail-pane-label absolute -top-3 left-3 text-[9px] font-mono text-ink-faint px-1 select-none">译文</span>
                 <div class="text-sm text-ink leading-relaxed whitespace-pre-wrap">{{ para.translated_text }}</div>
               </div>
             </div>
           </div>
 
-          <!-- Mobile: alternating paragraphs -->
           <div class="md:hidden p-4 space-y-3">
             <template v-for="(para, i) in translationResult.paragraphs" :key="'m-' + i">
-              <!-- Original -->
-              <div class="relative p-3 bg-paper-dim rounded-card">
-                <span class="absolute -top-2 left-2 text-[9px] font-mono text-ink-faint bg-paper px-1 select-none">原文</span>
+              <div class="mail-reading-pane relative rounded-card p-3">
+                <span class="mail-pane-label absolute -top-2 left-2 text-[9px] font-mono text-ink-faint px-1 select-none">原文</span>
                 <div class="text-sm text-ink leading-relaxed translation-para mt-1" v-html="para.original_html" />
               </div>
-              <!-- Translated -->
-              <div class="relative p-3 pl-4" style="border-left: 2px solid var(--ink-faint);">
-                <span class="absolute -top-2 left-4 text-[9px] font-mono text-ink-faint bg-paper px-1 select-none">译文</span>
+              <div class="mail-reading-block relative rounded-card p-3">
+                <span class="mail-pane-label absolute -top-2 left-4 text-[9px] font-mono text-ink-faint px-1 select-none">译文</span>
                 <div class="text-sm text-ink leading-relaxed whitespace-pre-wrap mt-1">{{ para.translated_text }}</div>
               </div>
             </template>
           </div>
         </div>
 
-        <!-- Translated only view -->
         <div v-else-if="viewMode === 'translated' && translationResult" class="card p-6">
           <div class="space-y-4">
             <div
               v-for="(para, i) in translationResult.paragraphs"
               :key="'to-' + i"
-              class="relative pl-3"
-              style="border-left: 2px solid var(--ink-faint);"
+              class="mail-reading-block rounded-card p-4"
             >
               <div class="text-sm text-ink leading-relaxed whitespace-pre-wrap">{{ para.translated_text }}</div>
             </div>
           </div>
         </div>
 
-        <!-- Translation error -->
-        <div v-if="translationError" class="card p-5 mt-4 border-stamp-red">
+        <div v-if="translationError" class="card mt-4 border-[color:rgba(209,67,67,0.18)] bg-[color:rgba(209,67,67,0.04)] p-5">
           <div class="flex items-center justify-between">
             <div class="flex items-center space-x-2">
               <svg class="w-4 h-4 text-stamp-red flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
@@ -273,10 +256,9 @@
           </div>
         </div>
 
-        <!-- AI Summary -->
-        <div v-if="aiSummary" class="card p-5 mt-4 border-stamp-red">
+        <div v-if="aiSummary" class="card mt-4 border-[color:var(--accent)] bg-[color:var(--accent-soft)] p-5">
           <div class="flex items-center justify-between mb-2">
-            <span class="text-xs font-mono text-stamp-red font-medium uppercase tracking-wider">AI 摘要</span>
+            <span class="text-xs font-mono font-medium uppercase tracking-[0.08em] text-[color:var(--accent)]">AI 摘要</span>
             <button @click="aiSummary = ''" class="text-ink-faint hover:text-ink">
               <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -286,18 +268,16 @@
           <p class="text-sm text-ink leading-relaxed">{{ aiSummary }}</p>
         </div>
 
-        <!-- AI Loading -->
         <div v-if="aiLoading" class="card p-5 mt-4">
           <div class="flex items-center space-x-3">
-            <div class="w-4 h-4 border-2 border-line-soft border-t-ink rounded-full animate-spin" />
+            <div class="h-4 w-4 animate-spin rounded-full border-2 border-line-soft border-t-[color:var(--accent)]" />
             <span class="text-xs font-mono text-ink-faint">AI 处理中...</span>
           </div>
         </div>
 
-        <!-- Suggested Events -->
-        <div v-if="suggestedEvents.length > 0" class="card p-5 mt-4 border-stamp-red">
+        <div v-if="suggestedEvents.length > 0" class="card mt-4 border-[color:var(--accent)] p-5">
           <div class="flex items-center justify-between mb-3">
-            <span class="text-xs font-mono text-stamp-red font-medium uppercase tracking-wider">识别到的日程</span>
+            <span class="text-xs font-mono font-medium uppercase tracking-[0.08em] text-[color:var(--accent)]">识别到的日程</span>
             <button @click="suggestedEvents = []" class="text-ink-faint hover:text-ink">
               <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -308,7 +288,7 @@
             <div
               v-for="(event, idx) in suggestedEvents"
               :key="idx"
-              class="flex items-center justify-between p-3 bg-paper-dim rounded-card border border-line-soft"
+              class="mail-reading-pane flex items-center justify-between rounded-card border border-line-soft p-3"
             >
               <div class="min-w-0 flex-1">
                 <p class="text-sm font-medium text-ink">{{ event.title }}</p>
@@ -330,16 +310,14 @@
       </div>
     </div>
 
-    <!-- Error -->
     <div v-else class="flex-1 flex items-center justify-center text-ink-faint">
       <p class="text-sm">邮件加载失败</p>
     </div>
 
-    <!-- Tag modal -->
-    <div v-if="showTagModal" class="fixed inset-0 bg-ink/20 flex items-center justify-center z-50">
-      <div class="bg-paper border border-line-soft rounded-card w-full max-w-md mx-4">
+    <div v-if="showTagModal" class="fixed inset-0 z-50 flex items-center justify-center bg-[color:var(--overlay)]">
+      <div class="mail-floating-panel mx-4 w-full max-w-md rounded-card border border-line-soft">
         <div class="p-5 border-b border-line-soft">
-          <h2 class="text-lg font-serif font-semibold">添加标签</h2>
+          <h2 class="text-lg font-semibold tracking-[-0.03em]">添加标签</h2>
         </div>
         <div class="p-5 space-y-4">
           <div>
@@ -360,19 +338,17 @@
       </div>
     </div>
 
-    <!-- 翻译浮动按钮 -->
     <div v-if="translationConfigured && email.id && !loading" class="fixed bottom-6 right-6 z-40 flex items-end space-x-2">
-      <!-- 展开面板：语言选择 + 操作 -->
       <div
         v-if="showTranslatePanel"
-        class="bg-paper border border-line-soft rounded-card shadow-lg p-3 mb-1 space-y-2"
+        class="mail-floating-panel mb-1 space-y-2 rounded-card border border-line-soft p-3 shadow-lg"
         style="min-width: 160px;"
       >
         <select
           v-model="targetLang"
           @change="onTargetLangChange"
-          class="w-full text-xs py-1.5 px-2 rounded-card border border-line-soft bg-paper text-ink focus:outline-none focus:border-ink"
-          style="font-family: 'IBM Plex Mono', monospace;"
+          class="mail-floating-select w-full rounded-card border border-line-soft px-2 py-1.5 text-xs text-ink focus:outline-none focus:border-[color:var(--accent)]"
+          style="font-family: 'JetBrains Mono', monospace;"
         >
           <option value="zh">中文</option>
           <option value="en">English</option>
@@ -399,14 +375,13 @@
         </button>
       </div>
 
-      <!-- 浮动按钮 -->
       <button
         @click="showTranslatePanel = !showTranslatePanel"
         :disabled="translating"
-        class="w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 border"
+        class="mail-translate-fab flex h-12 w-12 items-center justify-center rounded-[0.875rem] border transition-all duration-200"
         :class="translationResult
-          ? 'bg-ink text-paper border-ink hover:bg-stamp-red hover:border-stamp-red'
-          : 'bg-paper text-ink border-line-soft hover:border-ink shadow-md'"
+          ? 'border-[color:var(--accent)] bg-[color:var(--accent)] text-paper hover:bg-[color:var(--accent-strong)] hover:border-[color:var(--accent-strong)]'
+          : 'border-line-soft text-ink shadow-md hover:border-[color:var(--accent)]'"
         :title="translating ? '翻译中...' : '翻译'"
       >
         <svg v-if="translating" class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
@@ -524,7 +499,13 @@ const loadAllTags = async () => {
   } catch (e) { console.error(e); }
 };
 
-const goBack = () => router.push('/inbox');
+const goBack = () => {
+  if (typeof route.query.back === 'string' && route.query.back) {
+    router.push(route.query.back);
+    return;
+  }
+  router.push('/inbox');
+};
 
 const reply = () => {
   router.push({
@@ -707,18 +688,128 @@ onMounted(() => { loadEmail(); loadAllTags(); loadAiStatus(); });
 </script>
 
 <style scoped>
+.mail-detail-meta,
+.mail-reading-pane {
+  background: rgba(245, 247, 251, 0.92);
+}
+
+.mail-detail-tag,
+.mail-reading-block {
+  background: rgba(248, 250, 253, 0.9);
+}
+
+.mail-view-tab {
+  background: transparent;
+}
+
+.mail-view-tab:hover {
+  background: var(--paper-dim);
+}
+
+.mail-view-tab.is-active {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.mail-translation-skeleton {
+  background: var(--paper-dim);
+}
+
+.mail-pane-label {
+  background: var(--surface);
+}
+
+.mail-floating-panel {
+  background: var(--surface);
+}
+
+.mail-floating-select {
+  background: var(--surface-muted);
+}
+
+.mail-translate-fab {
+  background: var(--surface);
+}
+
 .email-content :deep(img) { max-width: 100%; height: auto; }
 .email-content :deep(a) { color: var(--ink); text-decoration: underline; }
 .email-content :deep(blockquote) { border-left: 2px solid var(--line-soft); padding-left: 1rem; margin-left: 0; color: var(--ink-faint); }
+.email-content :deep(table),
+.email-content :deep(tbody),
+.email-content :deep(tr),
+.email-content :deep(td),
+.email-content :deep(th),
+.email-content :deep(div),
+.email-content :deep(section),
+.email-content :deep(article) {
+  background: transparent !important;
+}
 
-/* 翻译段落样式 */
+.email-content :deep([style*="background"]),
+.email-content :deep([bgcolor]) {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+.email-content :deep(body),
+.email-content :deep(p),
+.email-content :deep(span),
+.email-content :deep(td),
+.email-content :deep(th),
+.email-content :deep(div),
+.email-content :deep(li),
+.email-content :deep(h1),
+.email-content :deep(h2),
+.email-content :deep(h3),
+.email-content :deep(h4),
+.email-content :deep(h5),
+.email-content :deep(h6) {
+  color: var(--ink) !important;
+}
+
 .translation-para :deep(p) { margin: 0 0 0.5em 0; }
 .translation-para :deep(p:last-child) { margin-bottom: 0; }
-.translation-para :deep(a) { color: var(--ink); text-decoration: underline; }
+.translation-para :deep(a) { color: var(--accent); text-decoration: underline; }
 .translation-para :deep(blockquote) { border-left: 2px solid var(--line-soft); padding-left: 0.75rem; color: var(--ink-faint); }
 .translation-para :deep(ul), .translation-para :deep(ol) { padding-left: 1.5rem; margin: 0.25em 0; }
 .translation-para :deep(li) { margin: 0.15em 0; }
 .translation-para :deep(strong) { font-weight: 600; }
-.translation-para :deep(code) { font-family: 'IBM Plex Mono', monospace; font-size: 0.85em; background: var(--paper-dim); padding: 0.1em 0.3em; border-radius: 3px; }
-.translation-para :deep(pre) { font-family: 'IBM Plex Mono', monospace; font-size: 0.85em; background: var(--paper-dim); padding: 0.75rem; border-radius: 5px; overflow-x: auto; }
+.translation-para :deep(code) { font-family: 'JetBrains Mono', monospace; font-size: 0.85em; background: var(--paper-dim); padding: 0.1em 0.3em; border-radius: 3px; }
+.translation-para :deep(pre) { font-family: 'JetBrains Mono', monospace; font-size: 0.85em; background: var(--paper-dim); padding: 0.75rem; border-radius: 5px; overflow-x: auto; }
+
+:global(.dark) .mail-detail-meta,
+:global(.dark) .mail-reading-pane {
+  background: rgba(16, 27, 41, 0.9);
+}
+
+:global(.dark) .mail-detail-tag,
+:global(.dark) .mail-reading-block {
+  background: rgba(18, 29, 44, 0.94);
+}
+
+:global(.dark) .mail-view-tab:hover {
+  background: rgba(18, 29, 44, 0.96);
+}
+
+:global(.dark) .mail-view-tab.is-active {
+  background: rgba(226, 232, 240, 0.12);
+  color: var(--ink);
+}
+
+:global(.dark) .mail-translation-skeleton {
+  background: rgba(36, 50, 70, 0.9);
+}
+
+:global(.dark) .mail-pane-label {
+  background: rgba(10, 17, 27, 0.96);
+}
+
+:global(.dark) .mail-floating-panel {
+  background: linear-gradient(180deg, rgba(14, 24, 38, 0.98), rgba(10, 17, 27, 0.96));
+}
+
+:global(.dark) .mail-floating-select,
+:global(.dark) .mail-translate-fab {
+  background: rgba(16, 27, 41, 0.94);
+}
 </style>

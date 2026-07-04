@@ -78,77 +78,135 @@
 
     <!-- Calendar body -->
     <div class="flex-1 overflow-y-auto p-6">
-      <!-- Month view -->
-      <div v-if="viewMode === 'month'" class="card">
-        <!-- Weekday header -->
-        <div class="grid grid-cols-7 border-b border-line-soft">
-          <div v-for="day in weekDays" :key="day" class="px-2 py-2.5 text-center text-[11px] font-mono text-ink-faint uppercase">
-            {{ day }}
+      <div v-if="viewMode === 'month'" class="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <div class="card">
+          <div class="grid grid-cols-7 border-b border-line-soft">
+            <div v-for="day in weekDays" :key="day" class="px-2 py-2.5 text-center text-[11px] font-mono text-ink-faint uppercase">
+              {{ day }}
+            </div>
+          </div>
+
+          <div class="grid grid-cols-7">
+            <div
+              v-for="(day, index) in calendarDays"
+              :key="index"
+              :class="[
+                'min-h-[100px] p-2 border-b border-r border-line-soft/50 cursor-pointer hover:bg-paper-dim transition-colors',
+                !day.isCurrentMonth ? 'bg-paper-dim/50 text-ink-faint' : '',
+                selectedDate === day.date ? 'bg-paper-dim/60' : '',
+              ]"
+              @click="selectDate(day.date)"
+            >
+              <div class="mb-1 flex items-center justify-between">
+                <span
+                  :class="[
+                    'text-xs font-mono',
+                    day.isToday
+                      ? 'flex h-6 w-6 items-center justify-center rounded-full bg-ink font-medium text-paper'
+                      : 'text-ink'
+                  ]"
+                >{{ day.day }}</span>
+                <span v-if="day.events.length > 0" class="text-[10px] font-mono text-ink-faint">{{ day.events.length }}</span>
+              </div>
+
+              <div class="space-y-1">
+                <div
+                  v-for="event in day.events.slice(0, 3)"
+                  :key="event.id"
+                  @click.stop="editEvent(event)"
+                  :class="[
+                    'group flex items-center truncate rounded-sm px-1.5 py-0.5 text-[11px] transition-colors',
+                    event.source === 'ai'
+                      ? 'ai-suggestion text-stamp-red hover:bg-stamp-red/5'
+                      : 'manual-event text-ink hover:bg-ink/5',
+                    event.completed ? 'event-completed' : '',
+                    confirmingIds.has(event.id) ? 'calendar-event-confirming' : ''
+                  ]"
+                >
+                  <span v-if="event.source === 'ai'" class="mr-1 text-[9px] font-mono">AI</span>
+                  <span class="flex-1 truncate">{{ event.title }}</span>
+                  <button
+                    @click.stop="toggleComplete(event)"
+                    :class="[
+                      'stamp-btn ml-1 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full border transition-all',
+                      event.completed
+                        ? 'border-stamp-red bg-stamp-red text-paper opacity-100'
+                        : 'border-line-soft text-transparent opacity-0 group-hover:opacity-60 hover:!opacity-100 hover:border-stamp-red hover:text-stamp-red'
+                    ]"
+                    :title="event.completed ? '标记未完成' : '标记完成'"
+                  >
+                    <svg class="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                    </svg>
+                  </button>
+                </div>
+                <button
+                  v-if="day.events.length > 3"
+                  class="px-1.5 text-[10px] font-mono text-ink-faint hover:text-ink"
+                  @click.stop="selectDate(day.date)"
+                >
+                  +{{ day.events.length - 3 }}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
-        <!-- Day cells -->
-        <div class="grid grid-cols-7">
-          <div
-            v-for="(day, index) in calendarDays"
-            :key="index"
-            :class="[
-              'min-h-[100px] p-2 border-b border-r border-line-soft/50 cursor-pointer hover:bg-paper-dim transition-colors',
-              !day.isCurrentMonth ? 'bg-paper-dim/50 text-ink-faint' : '',
-            ]"
-            @click="openCreateModal(day.date)"
-          >
-            <div class="flex items-center justify-between mb-1">
-              <span
-                :class="[
-                  'text-xs font-mono',
-                  day.isToday
-                    ? 'w-6 h-6 bg-ink text-paper rounded-full flex items-center justify-center font-medium'
-                    : 'text-ink'
-                ]"
-              >{{ day.day }}</span>
-              <span v-if="day.events.length > 0" class="text-[10px] font-mono text-ink-faint">{{ day.events.length }}</span>
+        <aside class="card p-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="section-title">当日事件</p>
+              <h2 class="mt-2 text-lg font-semibold tracking-[-0.03em] text-ink">{{ selectedDateTitle }}</h2>
             </div>
+            <span class="badge">{{ selectedDateEvents.length }} 项</span>
+          </div>
 
-            <!-- Event chips -->
-            <div class="space-y-1">
-              <div
-                v-for="event in day.events.slice(0, 3)"
-                :key="event.id"
-                @click.stop="editEvent(event)"
-                :class="[
-                  'group flex items-center text-[11px] px-1.5 py-0.5 rounded-sm truncate cursor-pointer transition-colors',
-                  event.source === 'ai'
-                    ? 'ai-suggestion text-stamp-red hover:bg-stamp-red/5'
-                    : 'manual-event text-ink hover:bg-ink/5',
-                  event.completed ? 'event-completed' : '',
-                  confirmingIds.has(event.id) ? 'calendar-event-confirming' : ''
-                ]"
-              >
-                <span v-if="event.source === 'ai'" class="mr-1 text-[9px] font-mono">AI</span>
-                <span class="flex-1 truncate">{{ event.title }}</span>
-                <!-- 完成戳印按钮 -->
+          <div v-if="selectedDateEvents.length > 0" class="mt-4 space-y-2.5">
+            <button
+              v-for="event in selectedDateEvents"
+              :key="event.id"
+              @click="editEvent(event)"
+              :class="[
+                'w-full rounded-card border p-3 text-left transition-colors',
+                event.source === 'ai'
+                  ? 'border-dashed border-stamp-red/50 bg-stamp-red/5'
+                  : 'border-line-soft bg-[color:var(--surface-muted)]',
+                event.completed ? 'event-completed' : ''
+              ]"
+            >
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <div class="flex items-center gap-2">
+                    <span v-if="event.source === 'ai'" class="badge-stamp">AI</span>
+                    <p class="truncate text-sm font-semibold text-ink">{{ event.title }}</p>
+                  </div>
+                  <p class="mt-1 text-[11px] font-mono text-ink-faint">
+                    {{ formatEventRange(event) }}
+                  </p>
+                  <p v-if="event.notes" class="mt-2 line-clamp-2 text-xs text-ink-faint">{{ event.notes }}</p>
+                </div>
                 <button
                   @click.stop="toggleComplete(event)"
                   :class="[
-                    'flex-shrink-0 ml-1 w-4 h-4 rounded-full border flex items-center justify-center transition-all stamp-btn',
+                    'stamp-btn flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border transition-all',
                     event.completed
-                      ? 'bg-stamp-red border-stamp-red text-paper opacity-100'
-                      : 'border-line-soft text-transparent opacity-0 group-hover:opacity-60 hover:!opacity-100 hover:border-stamp-red hover:text-stamp-red'
+                      ? 'border-stamp-red bg-stamp-red text-paper'
+                      : 'border-line-soft text-ink-faint hover:border-stamp-red hover:text-stamp-red'
                   ]"
                   :title="event.completed ? '标记未完成' : '标记完成'"
                 >
-                  <svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                  <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                   </svg>
                 </button>
               </div>
-              <div v-if="day.events.length > 3" class="text-[10px] font-mono text-ink-faint px-1.5">
-                +{{ day.events.length - 3 }}
-              </div>
-            </div>
+            </button>
           </div>
-        </div>
+
+          <div v-else class="mt-4 rounded-card border border-dashed border-line-soft bg-[color:var(--surface-muted)] p-4 text-sm text-ink-faint">
+            这一天没有更多日程。
+          </div>
+        </aside>
       </div>
 
       <!-- Week view -->
@@ -294,6 +352,7 @@ const upcomingEvents = ref([]);
 const showModal = ref(false);
 const editingEvent = ref(null);
 const confirmingIds = ref(new Set());
+const selectedDate = ref(dayjs().format('YYYY-MM-DD'));
 
 const form = ref({
   title: '',
@@ -352,6 +411,10 @@ const getEventsForDate = (date) => {
   return events.value.filter(e => eventCoversDate(e, date));
 };
 
+const selectedDateEvents = computed(() => getEventsForDate(selectedDate.value));
+
+const selectedDateTitle = computed(() => dayjs(selectedDate.value).format('M月D日 dddd'));
+
 const loadEvents = async () => {
   try {
     let s, e;
@@ -385,6 +448,22 @@ const goToNext = () => {
     : currentDate.value.add(1, 'week');
 };
 const goToToday = () => { currentDate.value = dayjs(); };
+
+const selectDate = (date) => {
+  selectedDate.value = date;
+};
+
+const formatEventRange = (event) => {
+  if (event.all_day) {
+    const start = dayjs(event.start_time).format('M月D日');
+    const end = event.end_time ? dayjs(event.end_time).format('M月D日') : '';
+    return end && end !== start ? `${start} - ${end} · 全天` : `${start} · 全天`;
+  }
+
+  const start = dayjs(event.start_time).format('M月D日 HH:mm');
+  const end = event.end_time ? dayjs(event.end_time).format('HH:mm') : '';
+  return end ? `${start} - ${end}` : start;
+};
 
 const openCreateModal = (date) => {
   editingEvent.value = null;
@@ -496,6 +575,12 @@ const confirmAiEvent = async () => {
 
 watch(viewMode, () => loadEvents());
 watch(currentDate, () => loadEvents());
+
+watch(calendarDays, (days) => {
+  if (!days.some((day) => day.date === selectedDate.value)) {
+    selectedDate.value = days.find((day) => day.isToday)?.date || days[0]?.date || selectedDate.value;
+  }
+});
 
 onMounted(() => { loadEvents(); loadUpcomingEvents(); });
 </script>

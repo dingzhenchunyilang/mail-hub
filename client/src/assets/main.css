@@ -1,296 +1,793 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ═══════════════════════════════════════════
-   DESIGN SYSTEM — 全局共享层
-   所有页面通过 main.js 自动引入此文件
-   不需要在单个页面里重复定义
-   ═══════════════════════════════════════════ */
-
-/* ── 色彩令牌（Light Mode 默认） ── */
 :root {
-  --ink: #1A1A1A;
-  --paper: #FAFAF7;
-  --paper-dim: #F0EFEA;
-  --line-soft: #D9D6CC;
-  --ink-faint: #8C8878;
-  --stamp-red: #C1432E;
-
-  /* 派生色 */
-  --overlay: rgba(26, 26, 26, 0.2);
-  --scrollbar-thumb: #D9D6CC;
-  --scrollbar-hover: #8C8878;
-  --selection-bg: rgba(193, 67, 46, 0.15);
-  --shadow-toast: 0 4px 24px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.06);
+  --ink: #0f172a;
+  --paper: #edf1f6;
+  --paper-dim: #e4e9f1;
+  --surface: rgba(255, 255, 255, 0.92);
+  --surface-muted: #f5f7fb;
+  --surface-strong: #ffffff;
+  --line-soft: #d3dce7;
+  --line-strong: #aebbcc;
+  --ink-faint: #5f6f86;
+  --ink-muted: #8997ab;
+  --accent: #2158d5;
+  --accent-strong: #1b47ae;
+  --accent-soft: rgba(33, 88, 213, 0.1);
+  --stamp-red: #d14343;
+  --sidebar: #0a111d;
+  --sidebar-line: rgba(148, 163, 184, 0.15);
+  --sidebar-hover: rgba(148, 163, 184, 0.08);
+  --sidebar-active: rgba(33, 88, 213, 0.18);
+  --sidebar-ink: #f8fafc;
+  --sidebar-muted: #90a0b7;
+  --overlay: rgba(15, 23, 42, 0.44);
+  --scrollbar-thumb: #c2ccda;
+  --scrollbar-hover: #94a3b8;
+  --selection-bg: rgba(33, 88, 213, 0.16);
+  --shadow-soft: 0 8px 20px rgba(15, 23, 42, 0.06);
+  --shadow-card: 0 10px 24px rgba(15, 23, 42, 0.06);
+  --shadow-panel: 0 18px 42px rgba(15, 23, 42, 0.08);
 }
 
-/* ── Dark Mode ── */
 .dark {
-  --ink: #E8E6E1;
-  --paper: #141413;
-  --paper-dim: #1E1E1C;
-  --line-soft: #2E2D2A;
-  --ink-faint: #7A7768;
-  --stamp-red: #E05540;
-
-  --overlay: rgba(0, 0, 0, 0.45);
-  --scrollbar-thumb: #2E2D2A;
-  --scrollbar-hover: #4A4840;
-  --selection-bg: rgba(224, 85, 64, 0.2);
-  --shadow-toast: 0 4px 24px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.2);
+  --ink: #e2e8f0;
+  --paper: #08101b;
+  --paper-dim: #101a28;
+  --surface: rgba(14, 23, 36, 0.96);
+  --surface-muted: #0f1b2b;
+  --surface-strong: #172335;
+  --line-soft: #243246;
+  --line-strong: #334155;
+  --ink-faint: #8ea0b8;
+  --ink-muted: #64748b;
+  --accent: #60a5fa;
+  --accent-strong: #3b82f6;
+  --accent-soft: rgba(96, 165, 250, 0.16);
+  --stamp-red: #fb7185;
+  --sidebar: #040813;
+  --sidebar-line: rgba(148, 163, 184, 0.14);
+  --sidebar-hover: rgba(148, 163, 184, 0.08);
+  --sidebar-active: rgba(59, 130, 246, 0.22);
+  --sidebar-ink: #f8fafc;
+  --sidebar-muted: #8ea0b8;
+  --overlay: rgba(2, 6, 23, 0.62);
+  --scrollbar-thumb: #314055;
+  --scrollbar-hover: #42526a;
+  --selection-bg: rgba(96, 165, 250, 0.2);
+  --shadow-soft: 0 20px 50px rgba(2, 6, 23, 0.34);
+  --shadow-card: 0 24px 60px rgba(2, 6, 23, 0.34);
+  --shadow-panel: 0 30px 80px rgba(2, 6, 23, 0.42);
 }
 
 @layer base {
+  html,
+  body,
+  #app {
+    height: 100%;
+  }
+
+  html {
+    color-scheme: light;
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
+
   body {
-    @apply text-ink antialiased;
+    @apply antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
     font-feature-settings: 'cv11', 'ss01';
-    background: var(--paper);
+    background:
+      radial-gradient(circle at top left, rgba(33, 88, 213, 0.045), transparent 26%),
+      linear-gradient(180deg, #f6f8fc 0%, #edf1f6 48%, #eaf0f6 100%);
     color: var(--ink);
+    overflow: hidden;
   }
 
-  h1, h2, h3 {
-    font-family: 'Fraunces', Georgia, serif;
+  .dark body {
+    background:
+      radial-gradient(circle at top left, rgba(96, 165, 250, 0.08), transparent 22%),
+      linear-gradient(180deg, #07101a 0%, #09111d 48%, #08101b 100%);
   }
 
-  ::-webkit-scrollbar { width: 5px; height: 5px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 3px; }
-  ::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-hover); }
-  ::selection { background: var(--selection-bg); }
+  h1,
+  h2,
+  h3 {
+    font-family: 'Inter', system-ui, sans-serif;
+    letter-spacing: -0.03em;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  ::-webkit-scrollbar {
+    width: 7px;
+    height: 7px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 999px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-hover);
+  }
+
+  ::selection {
+    background: var(--selection-bg);
+  }
 }
 
 @layer components {
-  /* ── 按钮 ── */
+  .surface-panel {
+    @apply rounded-[1rem];
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(249, 251, 255, 0.94));
+    border: 1px solid var(--line-soft);
+    box-shadow: var(--shadow-panel);
+    overflow: hidden;
+  }
+
+  .dark .surface-panel {
+    background: linear-gradient(180deg, rgba(15, 24, 38, 0.98), rgba(11, 18, 29, 0.94));
+  }
+
+  .card {
+    @apply rounded-[0.875rem];
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 253, 0.92));
+    border: 1px solid var(--line-soft);
+    box-shadow: var(--shadow-card);
+  }
+
+  .dark .card {
+    background: linear-gradient(180deg, rgba(19, 30, 45, 0.96), rgba(15, 24, 38, 0.92));
+  }
+
   .btn {
-    @apply px-4 py-2 rounded-card font-sans font-medium text-sm transition-all duration-150
-           inline-flex items-center justify-center
-           border;
+    @apply inline-flex items-center justify-center gap-1.5 rounded-[0.7rem] border px-3.5 py-2 text-sm font-semibold transition-all duration-200 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50;
     border-color: var(--line-soft);
-    letter-spacing: 0.01em;
-  }
-  .btn-primary {
-    background: var(--ink);
-    color: var(--paper);
-    border-color: var(--ink);
-  }
-  .btn-primary:hover {
-    background: var(--stamp-red);
-    border-color: var(--stamp-red);
-  }
-  .btn-secondary {
-    background: var(--paper);
+    background: rgba(255, 255, 255, 0.72);
     color: var(--ink);
+    box-shadow: none;
+  }
+
+  .btn:hover {
+    border-color: var(--line-strong);
+    background: var(--surface-strong);
+  }
+
+  .dark .btn {
+    background: rgba(20, 31, 46, 0.88);
+  }
+
+  .dark .btn:hover {
+    background: rgba(27, 40, 58, 0.96);
+  }
+
+  .btn:focus-visible {
+    box-shadow: 0 0 0 3px rgba(33, 88, 213, 0.14);
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #f8fbff;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  }
+
+  .btn-primary:hover {
+    background: var(--accent-strong);
+    border-color: var(--accent-strong);
+  }
+
+  .btn-secondary {
+    background: rgba(244, 247, 251, 0.9);
     border-color: var(--line-soft);
+    color: var(--ink);
   }
-  .btn-secondary:hover {
-    border-color: var(--ink);
+
+  .dark .btn-secondary {
+    background: rgba(18, 29, 44, 0.96);
   }
+
   .btn-danger {
-    background: transparent;
+    background: rgba(209, 67, 67, 0.08);
+    border-color: rgba(209, 67, 67, 0.18);
     color: var(--stamp-red);
-    border-color: var(--stamp-red);
   }
+
   .btn-danger:hover {
     background: var(--stamp-red);
-    color: var(--paper);
+    border-color: var(--stamp-red);
+    color: #fff7f7;
   }
-  .btn-sm        { @apply px-3 py-1.5 text-xs; }
+
   .btn-ghost {
     background: transparent;
-    color: var(--ink);
     border-color: transparent;
+    color: var(--ink-faint);
+    box-shadow: none;
   }
+
   .btn-ghost:hover {
-    background: var(--paper-dim);
-  }
-
-  /* ── 输入框 ── */
-  .input {
-    @apply w-full px-3 py-2 rounded-card
-           placeholder-ink-faint
-           focus:outline-none
-           transition-colors duration-150;
-    background: var(--paper);
+    background: var(--surface-muted);
     color: var(--ink);
-    border: 1px solid var(--line-soft);
-    font-family: 'Inter', sans-serif;
-  }
-  .input:focus {
-    border-color: var(--ink);
-    box-shadow: 0 0 0 1px var(--ink);
   }
 
-  /* ── 文本域 ── */
-  .textarea {
-    @apply input min-h-[200px] resize-y leading-relaxed;
+  .btn-sm {
+    @apply px-3 py-1.5 text-[12px];
   }
 
-  /* ── 下拉选择器 ── */
+  .input,
+  .textarea,
   .select {
-    @apply input cursor-pointer;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%238C8878' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-    background-position: right 0.5rem center;
+    @apply w-full rounded-[0.75rem] border px-3 py-2.5 text-sm transition-all duration-200 focus:outline-none;
+    border-color: var(--line-soft);
+    background: rgba(255, 255, 255, 0.72);
+    color: var(--ink);
+  }
+
+  .input::placeholder,
+  .textarea::placeholder {
+    color: var(--ink-faint);
+  }
+
+  .dark .input,
+  .dark .textarea,
+  .dark .select {
+    background: rgba(16, 27, 41, 0.9);
+  }
+
+  .input:focus,
+  .textarea:focus,
+  .select:focus {
+    border-color: var(--accent);
+    background: var(--surface-strong);
+    box-shadow: 0 0 0 3px rgba(33, 88, 213, 0.14);
+  }
+
+  .textarea {
+    @apply min-h-[200px] resize-y leading-relaxed;
+  }
+
+  .select {
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.7rem center;
     background-repeat: no-repeat;
-    background-size: 1.25rem;
+    background-size: 1.1rem;
     padding-right: 2.5rem;
     -webkit-appearance: none;
     -moz-appearance: none;
     appearance: none;
   }
 
-  /* ── 表单字段（带底部分割线） ── */
-  .form-field {
-    @apply py-4;
-    border-bottom: 1px solid var(--line-soft);
-  }
-  .form-field:last-child {
-    border-bottom: none;
+  .dark .select {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%238ea0b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
   }
 
-  /* ── 标签 ── */
   .label {
-    @apply block text-xs font-medium mb-1.5 uppercase tracking-wider;
-    font-family: 'IBM Plex Mono', monospace;
+    @apply mb-1.5 block text-[11px] font-medium uppercase tracking-[0.08em];
+    font-family: 'JetBrains Mono', monospace;
     color: var(--ink-faint);
   }
 
-  /* ── 卡片 ── */
-  .card {
-    @apply rounded-card;
-    background: var(--paper);
-    border: 1px solid var(--line-soft);
+  .section-title {
+    @apply text-[11px] font-medium uppercase tracking-[0.08em];
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--ink-faint);
   }
 
-  /* ── 徽章 ── */
+  .page-header {
+    @apply px-4 py-3 lg:px-6 lg:py-4;
+  }
+
+  .page-title {
+    @apply text-display;
+    color: var(--ink);
+  }
+
+  .page-subtitle {
+    max-width: 72ch;
+    color: var(--ink-faint);
+    font-size: 0.9375rem;
+    line-height: 1.65;
+  }
+
+  .badge,
+  .status-pill {
+    @apply inline-flex items-center rounded-[0.55rem] border px-2.5 py-1 text-[11px] font-medium;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
   .badge {
-    @apply inline-flex items-center px-2 py-0.5 rounded-card text-xs font-medium;
-    font-family: 'IBM Plex Mono', monospace;
-    border: 1px solid var(--line-soft);
+    border-color: var(--line-soft);
+    background: var(--surface-muted);
     color: var(--ink-faint);
   }
-  .badge-stamp {
-    border-color: var(--stamp-red);
+
+  .dark .badge {
+    background: rgba(18, 29, 44, 0.94);
+  }
+
+  .status-pill {
+    border-color: rgba(33, 88, 213, 0.14);
+    background: rgba(33, 88, 213, 0.08);
+    color: var(--accent);
+  }
+
+  .badge-stamp,
+  .status-pill--danger {
+    @apply inline-flex items-center rounded-[0.625rem] border px-2.5 py-1 text-[11px] font-medium;
+    font-family: 'JetBrains Mono', monospace;
+    border-color: rgba(209, 67, 67, 0.18);
+    background: rgba(209, 67, 67, 0.08);
     color: var(--stamp-red);
   }
 
-  /* ── 分割线 ── */
-  .divider {
-    border-top: 1px solid var(--line-soft);
-  }
-
-  /* ── 区块标题 ── */
-  .section-title {
-    font-family: 'IBM Plex Mono', monospace;
-    @apply text-xs font-medium uppercase tracking-widest;
-    color: var(--ink-faint);
-  }
-
-  /* ── 头像（线稿风格） ── */
-  .avatar {
-    @apply w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0;
-    border: 1px solid var(--line-soft);
-    background: var(--paper);
-  }
-  .avatar-text {
-    @apply font-semibold text-sm;
-    font-family: 'Inter', sans-serif;
-    color: var(--ink);
-  }
-  .avatar-icon {
-    color: var(--ink-faint);
-  }
-
-  /* ── 页面标题 ── */
-  .page-title {
-    @apply text-display font-serif;
-    color: var(--ink);
-  }
-
-  /* ── 页头栏 ── */
-  .page-header {
-    @apply px-6 py-4;
-    background: var(--paper);
-    border-bottom: 1px solid var(--line-soft);
-  }
-
-  /* ── 空状态 ── */
-  .empty-state {
-    @apply flex flex-col items-center justify-center h-64;
-    color: var(--ink-faint);
-  }
-  .empty-state-title {
-    @apply text-sm font-serif mt-4;
-    color: var(--ink);
-  }
-  .empty-state-desc {
-    @apply text-xs mt-1;
-    color: var(--ink-faint);
-  }
-
-  /* ── 加载指示器 ── */
   .spinner {
-    @apply w-5 h-5 border-2 rounded-full animate-spin;
+    @apply h-6 w-6 animate-spin rounded-full border-2;
+    border-color: rgba(37, 99, 235, 0.14);
+    border-top-color: var(--accent);
+  }
+
+  .theme-toggle {
+    @apply flex h-9 w-9 items-center justify-center rounded-[0.75rem] border transition-all duration-200;
+    border-color: var(--sidebar-line);
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--sidebar-ink);
+  }
+
+  .theme-toggle:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--sidebar-ink);
+  }
+
+  .sidebar-shell {
+    @apply flex h-full flex-col overflow-hidden rounded-[1rem];
+    background: var(--sidebar);
+    color: var(--sidebar-ink);
+    border: 1px solid var(--sidebar-line);
+    box-shadow: 0 18px 40px rgba(2, 6, 23, 0.24);
+  }
+
+  .sidebar-brand-mark {
+    @apply flex h-10 w-10 items-center justify-center rounded-[0.8rem];
+    background: linear-gradient(180deg, rgba(33, 88, 213, 0.26), rgba(33, 88, 213, 0.12));
+    color: #dbeafe;
+    border: 1px solid rgba(96, 165, 250, 0.18);
+  }
+
+  .app-sidebar-group {
+    @apply px-1 pb-1;
+  }
+
+  .app-sidebar-group + .app-sidebar-group {
+    border-top: 1px solid var(--sidebar-line);
+    padding-top: 0.9rem;
+  }
+
+  .app-sidebar-link {
+    @apply flex items-center gap-3 rounded-[0.8rem] px-3 py-2.5 text-sm font-medium transition-all duration-200;
+    color: var(--sidebar-muted);
+  }
+
+  .app-sidebar-link:hover {
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--sidebar-ink);
+  }
+
+  .app-sidebar-link.is-active {
+    background: var(--sidebar-active);
+    color: var(--sidebar-ink);
+    box-shadow: inset 0 0 0 1px rgba(96, 165, 250, 0.18);
+  }
+
+  .sidebar-footer-panel {
+    @apply rounded-[0.9rem] border px-3.5 py-3.5;
+    border-color: var(--sidebar-line);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.03));
+  }
+
+  .sidebar-footer-grid {
+    @apply grid grid-cols-2 gap-2;
+  }
+
+  .sidebar-stat {
+    @apply rounded-[0.75rem] border px-3 py-2;
+    border-color: var(--sidebar-line);
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .sidebar-stat-label {
+    @apply text-[10px] uppercase tracking-[0.08em];
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--sidebar-muted);
+  }
+
+  .sidebar-stat-value {
+    @apply mt-1 text-base font-semibold;
+    color: var(--sidebar-ink);
+  }
+
+  .mail-kpi {
+    @apply rounded-[0.75rem] px-3 py-2;
+    background: linear-gradient(180deg, rgba(248, 250, 253, 0.92), rgba(242, 246, 251, 0.72));
+    border: 1px solid rgba(211, 220, 231, 0.92);
+    min-width: 120px;
+  }
+
+  .dark .mail-kpi {
+    background: linear-gradient(180deg, rgba(20, 31, 46, 0.98), rgba(14, 24, 36, 0.86));
+    border-color: rgba(36, 50, 70, 0.96);
+  }
+
+  .mail-kpi-label {
+    @apply text-[10px] font-medium uppercase tracking-[0.08em];
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--ink-faint);
+  }
+
+  .mail-kpi-value {
+    @apply mt-1 text-[1.15rem] font-semibold;
+    color: var(--ink);
+  }
+
+  .mail-filter-chip {
+    @apply inline-flex items-center rounded-[0.7rem] border px-3 py-1.5 text-[12px] font-medium transition-all duration-200;
     border-color: var(--line-soft);
-    border-top-color: var(--ink);
+    background: transparent;
+    color: var(--ink-faint);
+  }
+
+  .mail-filter-chip:hover {
+    background: var(--surface-muted);
+    color: var(--ink);
+  }
+
+  .dark .mail-filter-chip:hover {
+    background: rgba(18, 29, 44, 0.92);
+  }
+
+  .mail-filter-chip.is-active {
+    background: var(--accent-soft);
+    border-color: rgba(33, 88, 213, 0.2);
+    color: var(--accent);
+  }
+
+  .mail-table-shell {
+    @apply flex h-full min-h-0 flex-col overflow-hidden rounded-[0.95rem];
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(249, 251, 255, 0.88));
+    border: 1px solid var(--line-soft);
+    box-shadow: var(--shadow-soft);
+  }
+
+  .dark .mail-table-shell {
+    background: linear-gradient(180deg, rgba(13, 22, 34, 0.96), rgba(10, 17, 27, 0.92));
+  }
+
+  .mail-list-header {
+    @apply border-b px-4 py-2 text-[10px] font-medium uppercase tracking-[0.08em];
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--ink-faint);
+    border-color: var(--line-soft);
+    background: rgba(245, 247, 251, 0.9);
+  }
+
+  .dark .mail-list-header {
+    background: rgba(16, 27, 41, 0.9);
+  }
+
+  .mail-list-row {
+    @apply transition-colors duration-150;
+    position: relative;
+  }
+
+  .mail-list-row:hover {
+    background: rgba(33, 88, 213, 0.04);
+  }
+
+  .dark .mail-list-row:hover {
+    background: rgba(96, 165, 250, 0.08);
+  }
+
+  .mail-list-row.is-unread {
+    background: rgba(33, 88, 213, 0.035);
+    box-shadow: inset 0 0 0 1px rgba(33, 88, 213, 0.06);
+  }
+
+  .dark .mail-list-row.is-unread {
+    background: rgba(59, 130, 246, 0.1);
+    box-shadow: inset 0 0 0 1px rgba(96, 165, 250, 0.1);
+  }
+
+  .mail-list-row.is-unread:hover {
+    background: rgba(33, 88, 213, 0.06);
+  }
+
+  .dark .mail-list-row.is-unread:hover {
+    background: rgba(59, 130, 246, 0.14);
+  }
+
+  .mail-mobile-card {
+    @apply rounded-[0.875rem] border p-3.5 text-left;
+    background: rgba(255, 255, 255, 0.86);
+    border-color: var(--line-soft);
+  }
+
+  .dark .mail-mobile-card {
+    background: rgba(15, 24, 38, 0.92);
+  }
+
+  .mail-command-strip {
+    position: relative;
+  }
+
+  .mail-command-strip::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    background: linear-gradient(90deg, rgba(33, 88, 213, 0.018), transparent 38%);
+  }
+
+  .action-cluster {
+    @apply flex flex-wrap items-center gap-2;
+  }
+
+  .mail-summary-line {
+    @apply flex flex-wrap items-center gap-2;
+  }
+
+  .toolbar-actions {
+    @apply flex flex-wrap items-center gap-2;
+  }
+
+  .data-chip {
+    @apply inline-flex items-center rounded-[0.6rem] border px-2 py-1 text-[10px] font-medium;
+    font-family: 'JetBrains Mono', monospace;
+    border-color: rgba(211, 220, 231, 0.92);
+    background: rgba(255, 255, 255, 0.78);
+    color: var(--ink-faint);
+  }
+
+  .dark .data-chip {
+    border-color: rgba(36, 50, 70, 0.96);
+    background: rgba(17, 28, 43, 0.94);
+  }
+
+  .mail-row-subject {
+    @apply truncate text-[13px];
+    color: var(--ink);
+  }
+
+  .mail-row-preview {
+    @apply truncate text-[11px];
+    color: var(--ink-faint);
+  }
+
+  .mail-row-tag {
+    @apply inline-flex items-center rounded-[999px] border px-2 py-0.5 text-[10px];
+    font-family: 'JetBrains Mono', monospace;
+    border-color: rgba(211, 220, 231, 0.9);
+    background: rgba(255, 255, 255, 0.72);
+    color: var(--ink-faint);
+  }
+
+  .dark .mail-row-tag {
+    border-color: rgba(36, 50, 70, 0.96);
+    background: rgba(18, 29, 44, 0.9);
+  }
+
+  .mail-toolbar-note {
+    @apply flex flex-wrap items-center gap-2 text-[12px];
+    color: var(--ink-faint);
+  }
+
+  .mail-icon-action {
+    @apply rounded-[0.65rem] p-1.5 transition-all duration-150;
+    color: var(--ink-faint);
+  }
+
+  .mail-icon-action:hover {
+    background: rgba(255, 255, 255, 0.88);
+    color: var(--ink);
+  }
+
+  .dark .mail-icon-action:hover {
+    background: rgba(18, 29, 44, 0.96);
+  }
+
+  .mail-icon-action.is-danger:hover {
+    color: var(--stamp-red);
+  }
+
+  .mail-skeleton-row {
+    @apply grid items-center gap-x-3 px-4 py-[0.65rem];
+  }
+
+  .mail-skeleton-block {
+    @apply h-3 rounded-full;
+    background: linear-gradient(90deg, rgba(211, 220, 231, 0.42), rgba(226, 232, 240, 0.75), rgba(211, 220, 231, 0.42));
+    background-size: 220% 100%;
+    animation: shimmer 1.35s linear infinite;
+  }
+
+  .dark .mail-skeleton-block {
+    background: linear-gradient(90deg, rgba(36, 50, 70, 0.42), rgba(55, 73, 97, 0.82), rgba(36, 50, 70, 0.42));
+    background-size: 220% 100%;
+  }
+
+  .empty-state {
+    @apply flex flex-1 flex-col items-center justify-center px-6 text-center;
+    color: var(--ink-faint);
+  }
+
+  .empty-state-icon {
+    @apply mb-4 flex h-16 w-16 items-center justify-center rounded-[1rem];
+    border: 1px solid var(--line-soft);
+    background: rgba(255, 255, 255, 0.68);
+  }
+
+  .dark .empty-state-icon {
+    background: rgba(16, 27, 41, 0.92);
+  }
+
+  .empty-state-title {
+    @apply text-base font-semibold;
+    color: var(--ink);
+  }
+
+  .empty-state-copy {
+    @apply mt-2 max-w-md text-sm leading-6;
+  }
+
+  .email-content {
+    color: var(--ink);
+    line-height: 1.8;
+    word-break: break-word;
+  }
+
+  .email-content img {
+    max-width: 100%;
+    border-radius: 0.75rem;
+    border: 1px solid var(--line-soft);
+  }
+
+  .email-content a {
+    color: var(--accent);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
+
+  .email-content pre,
+  .email-content code {
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .email-content table {
+    width: 100%;
+    display: block;
+    overflow-x: auto;
   }
 }
 
-/* ── 动画 ── */
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
 
-/* 日程虚线→实线 */
 @keyframes dash-to-solid {
-  0%   { border-style: dashed; border-color: var(--stamp-red); opacity: 0.7; }
-  50%  { border-style: dashed; border-color: var(--ink); opacity: 0.85; }
-  100% { border-style: solid;  border-color: var(--ink); opacity: 1; }
+  0% {
+    border-style: dashed;
+    border-color: var(--accent);
+    opacity: 0.7;
+  }
+  50% {
+    border-style: dashed;
+    border-color: var(--ink);
+    opacity: 0.85;
+  }
+  100% {
+    border-style: solid;
+    border-color: var(--ink);
+    opacity: 1;
+  }
 }
-.calendar-event-confirming { animation: dash-to-solid 0.35s ease-out forwards; }
 
-/* 纸飞机飞出 */
 @keyframes fly-out {
-  0%   { transform: translate(0, 0); opacity: 1; }
-  100% { transform: translate(12px, -12px); opacity: 0; }
+  0% {
+    transform: translate(0, 0);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(12px, -12px);
+    opacity: 0;
+  }
 }
-.send-flying { animation: fly-out 0.2s ease-out forwards; }
 
-/* ── 邮件列表 ── */
-.email-item { @apply transition-colors duration-100; }
-.email-item:hover { background: var(--paper-dim); }
-.email-unread .email-subject { @apply font-semibold; color: var(--ink); }
+.calendar-event-confirming {
+  animation: dash-to-solid 0.35s ease-out forwards;
+}
 
-/* ── 日程样式 ── */
-.ai-suggestion { border: 1.5px dashed var(--stamp-red); }
-.manual-event  { border: 1.5px solid var(--ink); }
-.event-completed { opacity: 0.55; text-decoration: line-through; text-decoration-color: var(--stamp-red); }
-.stamp-btn { font-family: 'IBM Plex Mono', monospace; font-size: 9px; }
+.send-flying {
+  animation: fly-out 0.2s ease-out forwards;
+}
 
-/* ── 索引卡撕边（收藏夹） ── */
-.index-card { position: relative; }
+.email-item {
+  @apply transition-colors duration-100;
+}
+
+.email-item:hover {
+  background: rgba(37, 99, 235, 0.04);
+}
+
+.ai-suggestion {
+  border: 1px dashed var(--accent);
+}
+
+.manual-event {
+  border: 1px solid var(--line-strong);
+}
+
+.event-completed {
+  opacity: 0.55;
+  text-decoration: line-through;
+  text-decoration-color: var(--stamp-red);
+}
+
+.stamp-btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+}
+
+.index-card {
+  position: relative;
+}
+
 .index-card::after {
   content: '';
   position: absolute;
-  top: 0; right: -1px;
-  width: 8px; height: 100%;
-  background: repeating-linear-gradient(
-    to bottom,
-    transparent 0px, transparent 4px,
-    var(--paper) 4px, var(--paper) 5px,
-    transparent 5px, transparent 9px
-  );
-  border-left: 1px solid var(--line-soft);
+  top: 0;
+  right: 0;
+  width: 1px;
+  height: 100%;
+  background: var(--line-soft);
 }
 
-/* ── 信封状态 ── */
-.envelope-status { @apply relative; }
+.envelope-status {
+  @apply relative;
+}
+
 .envelope-status.disconnected::after {
   content: '?';
-  position: absolute; top: -4px; right: -6px;
-  font-size: 10px; font-weight: 700;
+  position: absolute;
+  top: -4px;
+  right: -6px;
+  font-size: 10px;
+  font-weight: 700;
   color: var(--stamp-red);
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'JetBrains Mono', monospace;
 }
 
-/* ── 暗色模式过渡 ── */
 html.transitioning,
 html.transitioning *,
 html.transitioning *::before,
@@ -298,22 +795,13 @@ html.transitioning *::after {
   transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease !important;
 }
 
-/* ── 主题切换按钮 ── */
-.theme-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  border-radius: 0.375rem;
-  color: var(--ink-faint);
-  border: 1px solid transparent;
-  background: transparent;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-.theme-toggle:hover {
-  color: var(--ink);
-  background: var(--paper-dim);
-  border-color: var(--line-soft);
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }
