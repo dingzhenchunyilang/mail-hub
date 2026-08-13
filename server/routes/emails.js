@@ -5,6 +5,21 @@ import { decrypt } from '../utils/crypto.js';
 
 const router = Router();
 
+// IMAP 删除可能受网络和邮箱服务器影响而耗时很久。邮件已在本地软删除后，
+// 由独立任务继续同步远端，绝不阻塞 HTTP 响应。
+async function deleteFromImap(email, account) {
+  if (!email?.uid || !email?.folder || !account) return;
+
+  try {
+    const { ImapService } = await import('../services/imap.js');
+    const imapService = new ImapService(account);
+    await imapService.deleteEmail(email.folder, email.uid);
+    console.log(`[Delete] Deleted email ${email.uid} from ${email.folder}`);
+  } catch (error) {
+    console.error('[Delete] Failed to delete from server:', error.message);
+  }
+}
+
 // 获取最近联系人
 router.get('/contacts', (req, res) => {
   const { search } = req.query;
@@ -38,11 +53,39 @@ router.get('/contacts', (req, res) => {
   }
 });
 
+// 回收站邮件列表
+router.get('/trash', (req, res) => {
+  const db = getDb();
+  try {
+    const emails = db.prepare(`
+      SELECT e.*, a.name AS account_name, a.email AS account_email
+      FROM emails e LEFT JOIN accounts a ON e.account_id = a.id
+      WHERE e.is_deleted = 1 AND e.deleted_at > datetime('now', '-14 days')
+      ORDER BY e.deleted_at DESC
+    `).all();
+    res.json({ success: true, data: emails });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  } finally { db.close(); }
+});
+
+// 从回收站恢复邮件
+router.put('/:id/restore', (req, res) => {
+  const db = getDb();
+  try {
+    const result = db.prepare("UPDATE emails SET is_deleted = 0, deleted_at = NULL WHERE id = ? AND is_deleted = 1 AND deleted_at > datetime('now', '-14 days')").run(req.params.id);
+    if (!result.changes) return res.status(404).json({ success: false, message: '邮件不存在或已超过保留期' });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  } finally { db.close(); }
+});
+
 // 获取已发送邮件列表
 router.get('/sent', (req, res) => {
   const {
     page = 1,
-    limit = 50,
+    limit = 200,
     account_id,
     search,
     sort = 'received_at',
@@ -73,8 +116,26 @@ router.get('/sent', (req, res) => {
     ).get(...params);
 
     const emails = db.prepare(`
-      SELECT 
-        e.*,
+      SELECT
+        e.id,
+        e.account_id,
+        e.message_id,
+        e.uid,
+        e.folder,
+        e.from_address,
+        e.from_name,
+        e.to_address,
+        e.subject,
+        e.preview,
+        e.received_at,
+        e.is_read,
+        e.is_starred,
+        e.is_archived,
+        e.is_deleted,
+        e.has_attachments,
+        e.created_at,
+        e.is_bounced,
+        e.importance,
         a.name as account_name,
         a.email as account_email
       FROM emails e
@@ -105,7 +166,7 @@ router.get('/sent', (req, res) => {
 router.get('/', (req, res) => {
   const {
     page = 1,
-    limit = 50,
+    limit = 200,
     account_id,
     folder = 'INBOX',
     is_read,
@@ -162,8 +223,26 @@ router.get('/', (req, res) => {
 
     // 获取列表
     const emails = db.prepare(`
-      SELECT 
-        e.*,
+      SELECT
+        e.id,
+        e.account_id,
+        e.message_id,
+        e.uid,
+        e.folder,
+        e.from_address,
+        e.from_name,
+        e.to_address,
+        e.subject,
+        e.preview,
+        e.received_at,
+        e.is_read,
+        e.is_starred,
+        e.is_archived,
+        e.is_deleted,
+        e.has_attachments,
+        e.created_at,
+        e.is_bounced,
+        e.importance,
         a.name as account_name,
         a.email as account_email
       FROM emails e
@@ -210,8 +289,8 @@ router.put('/batch/read', (req, res) => {
   }
 });
 
-// 批量删除（软删除 + 同步删除服务器）
-router.put('/batch/delete', async (req, res) => {
+// 批量删除：本地软删除后立即响应，远端 IMAP 删除在后台继续执行。
+router.put('/batch/delete', (req, res) => {
   const { ids } = req.body;
   const db = getDb();
   try {
@@ -222,30 +301,30 @@ router.put('/batch/delete', async (req, res) => {
       return res.status(400).json({ success: false, message: '包含星标邮件，不能删除' });
     }
 
-    const stmt = db.prepare('UPDATE emails SET is_deleted = 1 WHERE id = ?');
+    const emailsToDelete = db.prepare(`
+      SELECT e.*, a.id as imap_account_id, a.name as account_name, a.email as account_email,
+             a.imap_host, a.imap_port, a.imap_secure, a.username, a.password_encrypted
+      FROM emails e
+      LEFT JOIN accounts a ON e.account_id = a.id
+      WHERE e.id IN (${placeholders})
+    `).all(...ids);
+    const stmt = db.prepare("UPDATE emails SET is_deleted = 1, deleted_at = datetime('now') WHERE id = ?");
     for (const id of ids) {
       stmt.run(id);
     }
-
-    // 同步删除服务器邮件
-    for (const id of ids) {
-      const email = db.prepare('SELECT * FROM emails WHERE id = ?').get(id);
-      if (email && email.uid && email.folder) {
-        try {
-          const account = db.prepare('SELECT * FROM accounts WHERE id = ?').get(email.account_id);
-          if (account) {
-            const { ImapService } = await import('../services/imap.js');
-            const imapService = new ImapService(account);
-            await imapService.deleteEmail(email.folder, email.uid);
-            console.log(`[Delete] Deleted email ${email.uid} from ${email.folder}`);
-          }
-        } catch (imapError) {
-          console.error('[Delete] Failed to delete from server:', imapError.message);
-        }
-      }
-    }
-
     res.json({ success: true });
+
+    // 响应发出后继续执行远端删除，回收站保留的是本地恢复副本。
+    void Promise.all(emailsToDelete.map((email) => deleteFromImap(email, email.imap_account_id ? {
+      id: email.imap_account_id,
+      name: email.account_name,
+      email: email.account_email,
+      imap_host: email.imap_host,
+      imap_port: email.imap_port,
+      imap_secure: email.imap_secure,
+      username: email.username,
+      password_encrypted: email.password_encrypted,
+    } : null)));
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   } finally {
@@ -342,8 +421,8 @@ router.put('/:id/unarchive', (req, res) => {
   }
 });
 
-// 删除邮件（软删除 + 同步删除服务器）
-router.put('/:id/delete', async (req, res) => {
+// 删除邮件：本地软删除后立即响应，远端 IMAP 删除在后台继续执行。
+router.put('/:id/delete', (req, res) => {
   const db = getDb();
   try {
     const email = db.prepare('SELECT * FROM emails WHERE id = ?').get(req.params.id);
@@ -356,24 +435,12 @@ router.put('/:id/delete', async (req, res) => {
     }
 
     // 本地软删除
-    db.prepare('UPDATE emails SET is_deleted = 1 WHERE id = ?').run(req.params.id);
-
-    // 同步删除服务器邮件
-    if (email.uid && email.folder) {
-      try {
-        const account = db.prepare('SELECT * FROM accounts WHERE id = ?').get(email.account_id);
-        if (account) {
-          const { ImapService } = await import('../services/imap.js');
-          const imapService = new ImapService(account);
-          await imapService.deleteEmail(email.folder, email.uid);
-          console.log(`[Delete] Deleted email ${email.uid} from ${email.folder}`);
-        }
-      } catch (imapError) {
-        console.error('[Delete] Failed to delete from server:', imapError.message);
-      }
-    }
+      const result = db.prepare("UPDATE emails SET is_deleted = 1, deleted_at = datetime('now') WHERE id = ?").run(req.params.id);
 
     res.json({ success: true });
+
+    const account = db.prepare('SELECT * FROM accounts WHERE id = ?').get(email.account_id);
+    void deleteFromImap(email, account);
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   } finally {

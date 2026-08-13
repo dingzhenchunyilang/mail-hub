@@ -5,6 +5,7 @@ import { ruleEngine } from './rules.js';
 import { v4 as uuidv4 } from 'uuid';
 import { detectCode, setKeywords } from './codeDetector.js';
 import { sseManager } from './sse.js';
+import { aiService } from './ai.js';
 
 export class SyncService {
   constructor() {
@@ -17,15 +18,32 @@ export class SyncService {
     this.boostJob = null;
   }
 
+  async cleanupRetention() {
+    const db = getDb();
+    try {
+      const expiredCodes = db.prepare("SELECT DISTINCT email_id FROM detected_codes WHERE delete_after IS NOT NULL AND delete_after <= datetime('now')").all();
+      if (expiredCodes.length) {
+        const stmt = db.prepare("UPDATE emails SET is_deleted = 1, deleted_at = COALESCE(deleted_at, datetime('now')) WHERE id = ? AND is_deleted = 0");
+        for (const row of expiredCodes) stmt.run(row.email_id);
+      }
+      db.prepare("DELETE FROM emails WHERE is_deleted = 1 AND deleted_at <= datetime('now', '-14 days')").run();
+      db.prepare("DELETE FROM detected_codes WHERE delete_after IS NOT NULL AND delete_after <= datetime('now')").run();
+    } catch (error) {
+      console.error('[SyncService] Retention cleanup failed:', error.message);
+    } finally { db.close(); }
+  }
+
   start() {
     console.log(`[SyncService] Starting with interval: ${this.syncInterval}`);
     
     // 启动时立即同步一次
     this.syncAllAccounts();
+    this.cleanupRetention();
     
     // 创建定时任务
     this.mainJob = new CronJob(this.syncInterval, () => {
       this.syncAllAccounts();
+      this.cleanupRetention();
     });
     
     this.mainJob.start();
@@ -81,8 +99,8 @@ export class SyncService {
           id, account_id, message_id, uid, folder,
           from_address, from_name, to_address,
           subject, preview, body_text, body_html,
-          received_at, is_read, has_attachments
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          list_unsubscribe, importance, ad_classified_at, received_at, is_read, has_attachments
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'normal', NULL, ?, ?, ?)
       `);
 
       const updateAccountStmt = db.prepare(
@@ -110,6 +128,7 @@ export class SyncService {
             email.preview,
             email.body_text,
             email.body_html,
+            email.list_unsubscribe,
             email.received_at,
             email.is_read,
             email.has_attachments
@@ -124,6 +143,7 @@ export class SyncService {
 
       if (newCount > 0) {
         console.log(`[SyncService] ${account.email}: ${newCount} new emails`);
+        await this.classifyNewEmails(newEmailIds);
         return newEmailIds;
       }
       
@@ -133,6 +153,30 @@ export class SyncService {
       db2.prepare('UPDATE accounts SET last_error = ? WHERE id = ?').run(error.message, account.id);
       db2.close();
       throw error;
+    }
+  }
+
+  async classifyNewEmails(emailIds) {
+    if (!aiService.isConfigured() || !emailIds?.length) return;
+    for (const emailId of emailIds) {
+      const db = getDb();
+      const email = db.prepare('SELECT * FROM emails WHERE id = ?').get(emailId);
+      db.close();
+      if (!email) continue;
+      try {
+        const result = await aiService.classifyEmail(email);
+        const updateDb = getDb();
+        updateDb.prepare("UPDATE emails SET importance = ?, ad_classified_at = datetime('now') WHERE id = ?").run(result.importance, emailId);
+        if (result.is_ad && !ruleEngine.isWhitelisted(email.from_address)) {
+          const tag = updateDb.prepare('SELECT id FROM tags WHERE name = ?').get('广告');
+          const tagId = tag?.id || uuidv4();
+          if (!tag) updateDb.prepare('INSERT INTO tags (id, name) VALUES (?, ?)').run(tagId, '广告');
+          updateDb.prepare('INSERT OR IGNORE INTO email_tags (email_id, tag_id) VALUES (?, ?)').run(emailId, tagId);
+        }
+        updateDb.close();
+      } catch (error) {
+        console.error(`[SyncService] AI classification failed for ${emailId}:`, error.message);
+      }
     }
   }
 
@@ -412,6 +456,7 @@ export class SyncService {
       result.confidence,
       result.keyword
     );
+    db.prepare("UPDATE detected_codes SET delete_after = datetime('now', '+1 hour') WHERE id = ?").run(codeId);
 
     // 获取账号信息
     const account = db.prepare('SELECT name, email FROM accounts WHERE id = ?').get(email.account_id);

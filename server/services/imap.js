@@ -125,6 +125,7 @@ export class ImapService {
                 preview: this.cleanPreview(parsed.text || '', parsed.html || ''),
                 body_text: parsed.text || '',
                 body_html: parsed.html || '',
+                list_unsubscribe: parsed.headers.get('list-unsubscribe') || '',
                 received_at: parsed.date?.toISOString() || new Date().toISOString(),
                 has_attachments: parsed.attachments?.length > 0 ? 1 : 0,
                 is_read: attrs.flags?.includes('\\Seen') ? 1 : 0,

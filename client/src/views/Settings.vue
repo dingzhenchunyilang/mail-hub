@@ -30,7 +30,7 @@
             <!-- 服务商 -->
             <div>
               <label class="label">服务商</label>
-              <select v-model="form.ai_provider" class="select">
+              <select v-model="form.ai_provider" @change="applyProviderPreset" class="select">
                 <option value="openai">OpenAI</option>
                 <option value="deepseek">DeepSeek</option>
                 <option value="dashscope">通义千问</option>
@@ -44,9 +44,16 @@
               <input
                 v-model="form.ai_api_key"
                 type="password"
+                name="mail-hub-ai-api-key"
+                autocomplete="new-password"
+                data-lpignore="true"
+                data-1p-ignore
                 class="input"
-                :placeholder="config.has_key ? '已配置（留空不修改）' : 'sk-...'"
+                :placeholder="config.has_key ? '输入新密钥以替换' : 'sk-...'"
               />
+              <p v-if="config.has_key" class="text-[10px] text-ink-faint mt-1 font-mono">
+                当前已保存：{{ config.ai_api_key }}；输入框仅用于填写新密钥，留空不会修改
+              </p>
               <p class="text-[10px] text-ink-faint mt-1 font-mono">
                 <span v-if="form.ai_provider === 'openai'">OpenAI: platform.openai.com → API Keys</span>
                 <span v-else-if="form.ai_provider === 'deepseek'">DeepSeek: platform.deepseek.com → API 密钥</span>
@@ -137,7 +144,7 @@
             <!-- 服务商 -->
             <div>
               <label class="label">翻译服务商</label>
-              <select v-model="translationForm.translation_provider" class="select">
+              <select v-model="translationForm.translation_provider" @change="applyTranslationProviderPreset" class="select">
                 <option value="openai">OpenAI（复用）</option>
                 <option value="deepseek">DeepSeek</option>
                 <option value="dashscope">通义千问</option>
@@ -154,9 +161,16 @@
               <input
                 v-model="translationForm.translation_app_id"
                 type="password"
+                name="mail-hub-translation-app-id"
+                autocomplete="new-password"
+                data-lpignore="true"
+                data-1p-ignore
                 class="input"
-                :placeholder="config.translation_has_app_id ? '已配置（留空不修改）' : '2020xxxx'"
+                :placeholder="config.translation_has_app_id ? '输入新 APP ID 以替换' : '2020xxxx'"
               />
+              <p v-if="config.translation_has_app_id" class="text-[10px] text-ink-faint mt-1 font-mono">
+                当前已保存：{{ config.translation_app_id }}；输入框仅用于填写新 APP ID
+              </p>
               <p class="text-[10px] text-ink-faint mt-1 font-mono">
                 百度翻译开放平台: fanyi-api.baidu.com → 产品服务 → 通用翻译
               </p>
@@ -168,9 +182,16 @@
               <input
                 v-model="translationForm.translation_api_key"
                 type="password"
+                name="mail-hub-translation-api-key"
+                autocomplete="new-password"
+                data-lpignore="true"
+                data-1p-ignore
                 class="input"
-                :placeholder="config.translation_has_key ? '已配置（留空不修改）' : 'sk-...'"
+                :placeholder="config.translation_has_key ? '输入新密钥以替换' : 'sk-...'"
               />
+              <p v-if="config.translation_has_key" class="text-[10px] text-ink-faint mt-1 font-mono">
+                当前已保存：{{ config.translation_api_key }}；输入框仅用于填写新密钥，留空不会修改
+              </p>
             </div>
 
             <!-- API 地址（仅 LLM 类服务商需要） -->
@@ -233,10 +254,10 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { settingsApi } from '@/api';
 
-const config = ref({ has_key: false, ai_provider: 'openai', ai_api_key: '', ai_base_url: '', ai_model: '', translation_has_key: false, translation_provider: 'openai', translation_api_key: '', translation_base_url: '', translation_model: '' });
+const config = ref({ has_key: false, ai_provider: 'openai', ai_api_key: '', ai_base_url: '', ai_model: '', translation_has_key: false, translation_has_app_id: false, translation_provider: 'openai', translation_api_key: '', translation_app_id: '', translation_base_url: '', translation_model: '' });
 const form = ref({ ai_provider: 'openai', ai_api_key: '', ai_base_url: 'https://api.openai.com/v1', ai_model: 'gpt-4o-mini' });
 const translationForm = ref({ translation_provider: 'openai', translation_api_key: '', translation_base_url: 'https://api.openai.com/v1', translation_model: 'gpt-4o-mini', translation_app_id: '' });
 const saving = ref(false);
@@ -313,25 +334,15 @@ const applyTranslationPreset = (preset) => {
   translationForm.value.translation_model = preset.model;
 };
 
-watch(() => form.value.ai_provider, (p) => {
-  const preset = presets.find(pr => pr.provider === p);
-  if (preset) {
-    form.value.ai_base_url = preset.url;
-    if (!form.value.ai_model || suggestedModels.value.includes(form.value.ai_model) === false) {
-      form.value.ai_model = preset.model;
-    }
-  }
-});
+const applyProviderPreset = () => {
+  const preset = presets.find(pr => pr.provider === form.value.ai_provider);
+  if (preset) applyPreset(preset);
+};
 
-watch(() => translationForm.value.translation_provider, (p) => {
-  const preset = translationPresets.find(pr => pr.provider === p);
-  if (preset) {
-    translationForm.value.translation_base_url = preset.url;
-    if (!translationForm.value.translation_model || translationSuggestedModels.value.includes(translationForm.value.translation_model) === false) {
-      translationForm.value.translation_model = preset.model;
-    }
-  }
-});
+const applyTranslationProviderPreset = () => {
+  const preset = translationPresets.find(pr => pr.provider === translationForm.value.translation_provider);
+  if (preset) applyTranslationPreset(preset);
+};
 
 const save = async () => {
   saving.value = true;

@@ -46,6 +46,8 @@ export const emailsApi = {
   unarchive: (id) => api.put(`/emails/${id}/unarchive`),
   delete: (id) => api.put(`/emails/${id}/delete`),
   batchDelete: (ids) => api.put('/emails/batch/delete', { ids }),
+  restore: (id) => api.put(`/emails/${id}/restore`),
+  trash: () => api.get('/emails/trash'),
   send: (data) => api.post('/emails/send', data),
   stats: () => api.get('/emails/stats/overview'),
 };

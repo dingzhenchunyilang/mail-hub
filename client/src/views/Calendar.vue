@@ -77,25 +77,25 @@
     </header>
 
     <!-- Calendar body -->
-    <div class="flex-1 overflow-y-auto p-6">
-      <div v-if="viewMode === 'month'" class="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <div class="card">
+    <div class="flex-1 overflow-y-auto p-4 lg:p-6 2xl:px-8">
+      <div v-if="viewMode === 'month'" class="calendar-layout grid gap-5 2xl:grid-cols-[minmax(0,1fr)_360px]">
+        <div class="card calendar-month-card">
           <div class="grid grid-cols-7 border-b border-line-soft">
             <div v-for="day in weekDays" :key="day" class="px-2 py-2.5 text-center text-[11px] font-mono text-ink-faint uppercase">
               {{ day }}
             </div>
           </div>
 
-          <div class="grid grid-cols-7">
+          <div class="calendar-month-grid grid grid-cols-7">
             <div
               v-for="(day, index) in calendarDays"
               :key="index"
               :class="[
-                'min-h-[100px] p-2 border-b border-r border-line-soft/50 cursor-pointer hover:bg-paper-dim transition-colors',
-                !day.isCurrentMonth ? 'bg-paper-dim/50 text-ink-faint' : '',
+                'calendar-day min-h-[100px] p-2 border-b border-r border-line-soft/50 cursor-pointer hover:bg-paper-dim transition-colors',
+                !day.isCurrentMonth ? 'calendar-day-outside' : '',
                 selectedDate === day.date ? 'bg-paper-dim/60' : '',
               ]"
-              @click="selectDate(day.date)"
+              @click="openCreateModal(day.date)"
             >
               <div class="mb-1 flex items-center justify-between">
                 <span
@@ -103,7 +103,7 @@
                     'text-xs font-mono',
                     day.isToday
                       ? 'flex h-6 w-6 items-center justify-center rounded-full bg-ink font-medium text-paper'
-                      : 'text-ink'
+                      : day.isCurrentMonth ? 'text-ink' : 'text-ink-faint'
                   ]"
                 >{{ day.day }}</span>
                 <span v-if="day.events.length > 0" class="text-[10px] font-mono text-ink-faint">{{ day.events.length }}</span>
@@ -152,7 +152,7 @@
           </div>
         </div>
 
-        <aside class="card p-4">
+        <aside class="card p-4 2xl:p-5">
           <div class="flex items-center justify-between">
             <div>
               <p class="section-title">当日事件</p>
@@ -231,7 +231,7 @@
         </div>
 
         <!-- Day rows with events -->
-        <div class="grid grid-cols-7 min-h-[400px]">
+        <div class="grid grid-cols-7 min-h-[calc(100vh-18rem)]">
           <div
             v-for="day in weekViewDays"
             :key="day.date"
@@ -468,6 +468,7 @@ const formatEventRange = (event) => {
 const openCreateModal = (date) => {
   editingEvent.value = null;
   const d = date || dayjs().format('YYYY-MM-DD');
+  selectedDate.value = d;
   form.value = {
     title: '',
     start_date: d,
@@ -584,3 +585,38 @@ watch(calendarDays, (days) => {
 
 onMounted(() => { loadEvents(); loadUpcomingEvents(); });
 </script>
+
+<style scoped>
+.calendar-month-card {
+  min-height: calc(100vh - 17rem);
+}
+
+.calendar-month-grid {
+  grid-auto-rows: minmax(7.5rem, 1fr);
+}
+
+.calendar-day-outside {
+  background: rgba(127, 136, 150, 0.12);
+  color: var(--ink-faint);
+  opacity: 0.55;
+}
+
+.calendar-day-outside:hover {
+  background: rgba(127, 136, 150, 0.18);
+  opacity: 0.72;
+}
+
+@media (min-width: 1536px) {
+  .calendar-month-card {
+    min-height: calc(100vh - 15rem);
+  }
+
+  .calendar-month-grid {
+    grid-auto-rows: minmax(9rem, 1fr);
+  }
+
+  .calendar-day {
+    padding: 0.75rem;
+  }
+}
+</style>

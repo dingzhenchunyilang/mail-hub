@@ -4,8 +4,8 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const _rawPath = process.env.DB_PATH || '../../data/mail-hub.db';
-const DB_PATH = path.isAbsolute(_rawPath) ? _rawPath : path.resolve(__dirname, '..', _rawPath);
+const _rawPath = process.env.DB_PATH || '../data/mail-hub.db';
+const DB_PATH = path.isAbsolute(_rawPath) ? _rawPath : path.resolve(__dirname, _rawPath);
 
 // 确保数据库目录存在
 const dbDir = path.dirname(DB_PATH);
@@ -61,11 +61,15 @@ export function initDb() {
       preview TEXT,
       body_text TEXT,
       body_html TEXT,
+      list_unsubscribe TEXT,
+      importance TEXT DEFAULT 'normal',
+      ad_classified_at TEXT,
       received_at TEXT,
       is_read INTEGER DEFAULT 0,
       is_starred INTEGER DEFAULT 0,
       is_archived INTEGER DEFAULT 0,
       is_deleted INTEGER DEFAULT 0,
+      deleted_at TEXT,
       has_attachments INTEGER DEFAULT 0,
       is_bounced INTEGER DEFAULT 0,
       created_at TEXT DEFAULT (datetime('now')),
@@ -139,6 +143,7 @@ export function initDb() {
       confidence TEXT DEFAULT 'high',
       keyword TEXT,
       detected_at TEXT DEFAULT (datetime('now')),
+      delete_after TEXT,
       FOREIGN KEY (email_id) REFERENCES emails(id) ON DELETE CASCADE,
       FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
     )
@@ -187,6 +192,24 @@ export function initDb() {
     CREATE INDEX IF NOT EXISTS idx_translation_email ON translation_cache(email_id);
     CREATE INDEX IF NOT EXISTS idx_translation_lang ON translation_cache(target_lang);
   `);
+
+  // 迁移：给 emails 表添加 List-Unsubscribe 头字段（已有表不会自动加）
+  try {
+    db.exec('ALTER TABLE emails ADD COLUMN list_unsubscribe TEXT');
+  } catch (e) { /* 字段已存在则忽略 */ }
+
+  try {
+    db.exec("ALTER TABLE emails ADD COLUMN importance TEXT DEFAULT 'normal'");
+  } catch (e) { /* 字段已存在则忽略 */ }
+  try {
+    db.exec('ALTER TABLE emails ADD COLUMN ad_classified_at TEXT');
+  } catch (e) { /* 字段已存在则忽略 */ }
+  try {
+    db.exec('ALTER TABLE emails ADD COLUMN deleted_at TEXT');
+  } catch (e) { /* 字段已存在则忽略 */ }
+  try {
+    db.exec('ALTER TABLE detected_codes ADD COLUMN delete_after TEXT');
+  } catch (e) { /* 字段已存在则忽略 */ }
 
   // 广告白名单发件人表
   db.exec(`

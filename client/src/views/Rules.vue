@@ -154,6 +154,7 @@
                 <option value="from_address">发件人地址</option>
                 <option value="from_name">发件人名称</option>
                 <option value="body">正文</option>
+                <option value="list_unsubscribe">退订头</option>
                 <option value="to_address">收件人</option>
               </select>
             </div>
@@ -253,7 +254,7 @@ const form = ref({
   match_value: '', action_type: 'tag', action_value: '', priority: 0,
 });
 
-const fieldLabels = { subject: '主题', from_address: '发件人', from_name: '发件人名', body: '正文', to_address: '收件人' };
+const fieldLabels = { subject: '主题', from_address: '发件人', from_name: '发件人名', body: '正文', list_unsubscribe: '退订头', to_address: '收件人' };
 const typeLabels = { contains: '包含', equals: '等于', starts_with: '开头是', ends_with: '结尾是', not_contains: '不包含', regex: '正则' };
 const actionLabels = { tag: '打标签', archive: '归档', mark_read: '标记已读', star: '加星标' };
 

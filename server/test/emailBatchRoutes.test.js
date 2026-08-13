@@ -80,6 +80,36 @@ test.before(() => {
   initDb();
 });
 
+test('GET /emails returns lightweight list rows without full message bodies', async () => {
+  seedEmail({ id: 'lightweight-list-target' });
+  const db = getDb();
+  db.prepare('UPDATE emails SET body_text = ?, body_html = ? WHERE id = ?').run(
+    'x'.repeat(100_000),
+    `<p>${'y'.repeat(100_000)}</p>`,
+    'lightweight-list-target'
+  );
+  db.close();
+
+  const app = createApp();
+  const server = app.listen(0);
+
+  try {
+    const port = server.address().port;
+    const response = await fetch(`http://127.0.0.1:${port}/emails?limit=200&is_archived=0`);
+    const payload = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.equal(payload.success, true);
+    const email = payload.data.find((item) => item.id === 'lightweight-list-target');
+    assert.ok(email);
+    assert.equal(Object.hasOwn(email, 'body_text'), false);
+    assert.equal(Object.hasOwn(email, 'body_html'), false);
+    assert.ok(Number(response.headers.get('content-length')) < 50_000);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
 test('PUT /emails/batch/read updates selected emails instead of matching /:id/read', async () => {
   seedEmail({ id: 'batch-read-target', is_read: 0 });
   const app = createApp();
@@ -119,6 +149,32 @@ test('PUT /emails/batch/delete soft-deletes selected emails instead of matching 
 
     const email = readEmail('batch-delete-target');
     assert.equal(email.is_deleted, 1);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test('PUT /emails/:id/delete responds before a slow remote delete finishes', async () => {
+  seedEmail({ id: 'async-delete-target', is_deleted: 0 });
+  const db = getDb();
+  db.prepare('UPDATE emails SET uid = ? WHERE id = ?').run(123, 'async-delete-target');
+  db.prepare('UPDATE accounts SET imap_host = ?, imap_port = ? WHERE id = ?').run('127.0.0.1', 1, 'acc-1');
+  db.close();
+
+  const app = createApp();
+  const server = app.listen(0);
+
+  try {
+    const port = server.address().port;
+    const startedAt = performance.now();
+    const response = await fetch(`http://127.0.0.1:${port}/emails/async-delete-target/delete`, {
+      method: 'PUT',
+    });
+    const elapsedMs = performance.now() - startedAt;
+
+    assert.equal(response.status, 200);
+    assert.ok(elapsedMs < 500, `delete response took ${elapsedMs}ms`);
+    assert.equal(readEmail('async-delete-target').is_deleted, 1);
   } finally {
     await new Promise((resolve) => server.close(resolve));
   }

@@ -51,33 +51,6 @@
               </svg>
             </button>
 
-          <!-- AI buttons -->
-            <div v-if="aiConfigured" class="ml-1 flex flex-wrap items-center gap-2 border-l border-line-soft pl-3">
-              <button
-                @click="summarizeEmail"
-                :disabled="aiLoading"
-                class="btn btn-secondary btn-sm"
-              >
-                <svg class="mr-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
-                </svg>
-                摘要
-              </button>
-              <button
-                @click="draftReply"
-                :disabled="aiLoading"
-                class="btn btn-secondary btn-sm"
-              >
-                AI 回复
-              </button>
-              <button
-                @click="extractEvents"
-                :disabled="aiLoading"
-                class="btn btn-secondary btn-sm"
-              >
-                识别日程
-              </button>
-            </div>
           </div>
         </div>
       </div>
@@ -109,6 +82,35 @@
             <div class="text-right">
               <p class="text-[11px] font-mono text-ink-faint">to: {{ email.to_address }}</p>
             </div>
+          </div>
+
+          <div v-if="aiConfigured" class="mt-4 flex flex-wrap items-center gap-2 border-t border-line-soft pt-4">
+            <span class="section-title mr-1">AI 工具</span>
+            <button
+              @click="summarizeEmail"
+              :disabled="aiLoading"
+              class="btn btn-primary btn-sm"
+            >
+              <svg class="mr-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
+              </svg>
+              摘要
+            </button>
+            <button
+              @click="draftReply"
+              :disabled="aiLoading"
+              class="btn btn-secondary btn-sm"
+            >
+              AI 回复
+            </button>
+            <button
+              @click="extractEvents"
+              :disabled="aiLoading"
+              class="btn btn-secondary btn-sm"
+            >
+              识别日程
+            </button>
+            <span v-if="aiLoading" class="ml-1 text-xs font-mono text-ink-faint">处理中...</span>
           </div>
 
           <div class="mt-4 pt-3 border-t border-line-soft">
@@ -178,6 +180,25 @@
           </div>
         </div>
 
+        <div v-if="aiLoading" class="card mb-4 border-[color:var(--accent)] bg-[color:var(--accent-soft)] p-5">
+          <div class="flex items-center space-x-3">
+            <div class="h-4 w-4 animate-spin rounded-full border-2 border-line-soft border-t-[color:var(--accent)]" />
+            <span class="text-xs font-mono text-ink-faint">AI 处理中...</span>
+          </div>
+        </div>
+
+        <div v-if="aiSummary" class="card mb-4 border-[color:var(--accent)] bg-[color:var(--accent-soft)] p-5">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-mono font-medium uppercase tracking-[0.08em] text-[color:var(--accent)]">AI 摘要</span>
+            <button @click="aiSummary = ''" class="text-ink-faint hover:text-ink">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <p class="text-sm text-ink leading-relaxed">{{ aiSummary }}</p>
+        </div>
+
         <div v-if="translating && !translationResult" class="card p-6">
           <div class="space-y-4">
             <div v-for="i in 6" :key="i" class="mail-translation-skeleton h-4 rounded animate-pulse" :style="{ width: `${90 - i * 10}%` }" />
@@ -193,36 +214,35 @@
         <div v-else-if="viewMode === 'parallel' && translationResult" class="card overflow-hidden">
           <div class="hidden md:grid md:grid-cols-2">
             <div class="mail-reading-pane p-6 space-y-4 border-r border-line-soft">
+              <p class="mail-translation-column-label">原文</p>
               <div
                 v-for="(para, i) in translationResult.paragraphs"
                 :key="'o-' + i"
-                class="relative"
+                class="translation-para"
               >
-                <span class="mail-pane-label absolute -top-3 left-0 text-[9px] font-mono text-ink-faint px-1 select-none">原文</span>
                 <div class="text-sm text-ink leading-relaxed translation-para" v-html="para.original_html" />
               </div>
             </div>
             <div class="mail-reading-pane p-6 space-y-4">
+              <p class="mail-translation-column-label">译文</p>
               <div
                 v-for="(para, i) in translationResult.paragraphs"
                 :key="'t-' + i"
-                class="mail-reading-block relative rounded-card p-4"
+                class="mail-reading-block rounded-card p-4"
               >
-                <span class="mail-pane-label absolute -top-3 left-3 text-[9px] font-mono text-ink-faint px-1 select-none">译文</span>
                 <div class="text-sm text-ink leading-relaxed whitespace-pre-wrap">{{ para.translated_text }}</div>
               </div>
             </div>
           </div>
 
           <div class="md:hidden p-4 space-y-3">
+            <p class="mail-translation-column-label">原文 / 译文</p>
             <template v-for="(para, i) in translationResult.paragraphs" :key="'m-' + i">
-              <div class="mail-reading-pane relative rounded-card p-3">
-                <span class="mail-pane-label absolute -top-2 left-2 text-[9px] font-mono text-ink-faint px-1 select-none">原文</span>
-                <div class="text-sm text-ink leading-relaxed translation-para mt-1" v-html="para.original_html" />
+              <div class="mail-reading-pane rounded-card p-3">
+                <div class="text-sm text-ink leading-relaxed translation-para" v-html="para.original_html" />
               </div>
-              <div class="mail-reading-block relative rounded-card p-3">
-                <span class="mail-pane-label absolute -top-2 left-4 text-[9px] font-mono text-ink-faint px-1 select-none">译文</span>
-                <div class="text-sm text-ink leading-relaxed whitespace-pre-wrap mt-1">{{ para.translated_text }}</div>
+              <div class="mail-reading-block rounded-card p-3">
+                <div class="text-sm text-ink leading-relaxed whitespace-pre-wrap">{{ para.translated_text }}</div>
               </div>
             </template>
           </div>
@@ -253,25 +273,6 @@
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
-          </div>
-        </div>
-
-        <div v-if="aiSummary" class="card mt-4 border-[color:var(--accent)] bg-[color:var(--accent-soft)] p-5">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-xs font-mono font-medium uppercase tracking-[0.08em] text-[color:var(--accent)]">AI 摘要</span>
-            <button @click="aiSummary = ''" class="text-ink-faint hover:text-ink">
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-          <p class="text-sm text-ink leading-relaxed">{{ aiSummary }}</p>
-        </div>
-
-        <div v-if="aiLoading" class="card p-5 mt-4">
-          <div class="flex items-center space-x-3">
-            <div class="h-4 w-4 animate-spin rounded-full border-2 border-line-soft border-t-[color:var(--accent)]" />
-            <span class="text-xs font-mono text-ink-faint">AI 处理中...</span>
           </div>
         </div>
 
@@ -307,6 +308,7 @@
             </div>
           </div>
         </div>
+
       </div>
     </div>
 
@@ -344,9 +346,19 @@
         class="mail-floating-panel mb-1 space-y-2 rounded-card border border-line-soft p-3 shadow-lg"
         style="min-width: 160px;"
       >
+        <p class="text-[10px] font-mono text-ink-faint">翻译设置</p>
+        <label class="flex cursor-pointer items-center justify-between gap-3 text-xs text-ink">
+          自动识别语言
+          <input v-model="translationMode" value="auto" type="radio" @change="saveTranslationMode" />
+        </label>
+        <label class="flex cursor-pointer items-center justify-between gap-3 text-xs text-ink">
+          手动选择语言
+          <input v-model="translationMode" value="manual" type="radio" @change="saveTranslationMode" />
+        </label>
         <select
           v-model="targetLang"
           @change="onTargetLangChange"
+          :disabled="translationMode === 'auto'"
           class="mail-floating-select w-full rounded-card border border-line-soft px-2 py-1.5 text-xs text-ink focus:outline-none focus:border-[color:var(--accent)]"
           style="font-family: 'JetBrains Mono', monospace;"
         >
@@ -359,13 +371,6 @@
           <option value="es">Español</option>
         </select>
         <button
-          @click="doTranslate(); showTranslatePanel = false"
-          :disabled="translating"
-          class="btn btn-primary btn-sm w-full"
-        >
-          {{ translating ? '翻译中...' : '开始翻译' }}
-        </button>
-        <button
           v-if="translationResult"
           @click="forceTranslate(); showTranslatePanel = false"
           :disabled="translating"
@@ -377,12 +382,23 @@
 
       <button
         @click="showTranslatePanel = !showTranslatePanel"
+        class="mail-translate-fab flex h-12 w-12 items-center justify-center rounded-[0.875rem] border border-line-soft text-ink shadow-md transition-all duration-200 hover:border-[color:var(--accent)]"
+        title="翻译设置"
+      >
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.065c1.543-.907 3.31.86 2.402 2.402a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.925 0 3.351a1.724 1.724 0 00-1.065 2.572c.908 1.543-.859 3.31-2.402 2.402a1.724 1.724 0 00-2.573 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.065c-1.543.908-3.31-.859-2.402-2.402a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.925 0-3.351a1.724 1.724 0 001.065-2.572c-.908-1.543.859-3.31 2.402-2.402.996.586 2.296.07 2.573-1.065z" />
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+      </button>
+
+      <button
+        @click="doTranslate()"
         :disabled="translating"
         class="mail-translate-fab flex h-12 w-12 items-center justify-center rounded-[0.875rem] border transition-all duration-200"
         :class="translationResult
           ? 'border-[color:var(--accent)] bg-[color:var(--accent)] text-paper hover:bg-[color:var(--accent-strong)] hover:border-[color:var(--accent-strong)]'
           : 'border-line-soft text-ink shadow-md hover:border-[color:var(--accent)]'"
-        :title="translating ? '翻译中...' : '翻译'"
+        :title="translating ? '翻译中...' : '立即翻译'"
       >
         <svg v-if="translating" class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" />
@@ -428,6 +444,7 @@ const showTranslatePanel = ref(false);
 const translationError = ref('');
 const translationResult = ref(null); // { paragraphs, source_lang, target_lang, cached }
 const targetLang = ref('zh');
+const translationMode = ref(localStorage.getItem('mailHub.translationMode') || 'auto');
 const viewMode = ref('original'); // 'original' | 'parallel' | 'translated'
 
 const formatDate = (d) => d ? dayjs(d).format('YYYY年M月D日 HH:mm:ss') : '';
@@ -477,7 +494,7 @@ const loadEmail = async () => {
     if (result.success) {
       email.value = result.data;
       loadEmailTags();
-      detectDefaultTargetLang();
+      if (translationMode.value === 'auto') detectDefaultTargetLang();
       checkTranslationCache();
     }
     else { await dialog.alert('邮件加载失败: ' + result.message); }
@@ -536,8 +553,11 @@ const archiveEmail = async () => {
 const deleteEmail = async () => {
   if (email.value.is_starred) { await dialog.alert('星标邮件不能删除，请先取消星标'); return; }
   if (!await dialog.confirm('确定删除这封邮件吗？')) return;
-  try { await emailsApi.delete(email.value.id); router.push('/inbox'); }
-  catch (e) { console.error(e); }
+
+  const emailId = email.value.id;
+  router.push(typeof route.query.back === 'string' && route.query.back ? route.query.back : '/inbox');
+  try { await emailsApi.delete(emailId); }
+  catch (e) { await dialog.alert('删除失败: ' + e.message); console.error(e); }
 };
 
 const addTag = async () => {
@@ -675,6 +695,22 @@ const doTranslate = async (forceRefresh = false) => {
 
 // 切换目标语言时自动检查缓存
 const onTargetLangChange = async () => {
+  if (translationMode.value === 'auto') return;
+  translationResult.value = null;
+  translationError.value = '';
+  viewMode.value = 'original';
+  await checkTranslationCache();
+};
+
+const saveTranslationMode = async () => {
+  localStorage.setItem('mailHub.translationMode', translationMode.value);
+  if (translationMode.value === 'auto') {
+    detectDefaultTargetLang();
+    await onAutoLanguageDetected();
+  }
+};
+
+const onAutoLanguageDetected = async () => {
   translationResult.value = null;
   translationError.value = '';
   viewMode.value = 'original';
@@ -715,8 +751,18 @@ onMounted(() => { loadEmail(); loadAllTags(); loadAiStatus(); });
   background: var(--paper-dim);
 }
 
-.mail-pane-label {
+.mail-pane-label,
+.mail-translation-column-label {
   background: var(--surface);
+}
+
+.mail-translation-column-label {
+  margin: 0;
+  color: var(--ink-faint);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.625rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .mail-floating-panel {

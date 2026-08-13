@@ -1,12 +1,12 @@
 <template>
-  <div class="h-full flex flex-col overflow-hidden">
+  <div class="min-h-full flex flex-col">
     <header class="page-header pb-1.5">
       <div class="card mail-command-strip p-2.5 lg:p-2.5">
         <div class="flex flex-col gap-2.5 xl:flex-row xl:items-start xl:justify-between">
           <div class="flex flex-wrap items-center gap-3">
             <div class="flex flex-wrap items-end gap-3">
               <h1 class="page-title">收件箱</h1>
-              <span class="badge">单屏 {{ pagination.limit }} 封</span>
+              <span class="badge">单页 {{ pagination.total }} 封</span>
             </div>
           </div>
 
@@ -123,42 +123,18 @@
       </div>
     </header>
 
-    <section class="flex-1 min-h-0 px-4 pb-2 lg:px-6 lg:pb-2">
+    <section class="flex-1 px-4 pb-6 lg:px-6 lg:pb-6">
       <div ref="tableShellRef" class="mail-table-shell">
-        <div ref="tableToolbarRef" class="flex flex-wrap items-center justify-between gap-3 border-b border-line-soft px-4 py-2.5">
-          <div v-if="selectedIds.length > 0" class="mail-summary-line">
+        <div v-if="selectedIds.length > 0" ref="tableToolbarRef" class="mail-summary-line border-b border-line-soft px-4 py-2.5">
             <span class="badge">已选 {{ selectedIds.length }} 封</span>
             <button @click="toggleSelectPage" class="btn btn-secondary btn-sm">
-              {{ allPageSelected ? '取消本页' : '全选本页' }}
+              {{ allPageSelected ? '取消全选' : '全选当前结果' }}
             </button>
             <button @click="batchMarkRead" class="btn btn-secondary btn-sm">标记已读</button>
             <button @click="batchMarkUnread" class="btn btn-secondary btn-sm">标记未读</button>
             <button @click="batchDelete" class="btn btn-danger btn-sm">删除</button>
             <button @click="clearSelection" class="btn btn-ghost btn-sm">取消</button>
           </div>
-          <div v-else class="mail-toolbar-note">
-            <span class="data-chip">共 {{ pagination.total }} 封</span>
-            <span class="data-chip">第 {{ pagination.page }} / {{ pagination.pages || 1 }} 页</span>
-            <span v-if="selectedTag" class="data-chip">标签 {{ selectedTag }}</span>
-            <span v-if="searchQuery" class="data-chip">搜索 {{ searchQuery }}</span>
-            <button @click="toggleSelectPage" class="btn btn-secondary btn-sm">
-              {{ allPageSelected ? '取消本页' : '全选本页' }}
-            </button>
-          </div>
-
-          <div class="flex items-center gap-2">
-            <button
-              @click="goToPage(pagination.page - 1)"
-              :disabled="!canPrevPage()"
-              class="btn btn-secondary btn-sm disabled:opacity-30"
-            >上一页</button>
-            <button
-              @click="goToPage(pagination.page + 1)"
-              :disabled="!canNextPage()"
-              class="btn btn-secondary btn-sm disabled:opacity-30"
-            >下一页</button>
-          </div>
-        </div>
 
         <div v-if="loading" class="flex flex-1 flex-col overflow-hidden">
           <div class="mail-list-header hidden lg:grid items-center gap-x-3" style="grid-template-columns: 1.5rem 1.2rem 1.5rem 5.4rem 7.6rem minmax(0,1fr) 1rem 4rem 2.5rem">
@@ -227,7 +203,7 @@
           </p>
         </div>
 
-        <div v-else class="flex flex-1 min-h-0 flex-col overflow-hidden">
+        <div v-else class="flex flex-col">
           <div
             ref="desktopColumnsRef"
             class="mail-list-header hidden lg:grid items-center gap-x-3"
@@ -252,11 +228,22 @@
             <span></span>
           </div>
 
-          <div ref="desktopListRef" class="hidden min-h-0 flex-1 overflow-hidden lg:block">
-            <div class="h-full divide-y divide-line-soft/70 overflow-hidden">
-              <div
-                v-for="email in emails"
-                :key="email.id"
+          <div ref="desktopListRef" class="hidden lg:block">
+            <div class="divide-y divide-line-soft/70">
+              <template v-for="(email, index) in emails" :key="email.id">
+                <div v-if="isNewDateGroup(email, index)" class="mail-date-divider">
+                  <span>{{ dateGroupLabel(email.received_at) }}</span>
+                  <label class="mail-date-select" @click.stop>
+                    <input
+                      type="checkbox"
+                      :checked="isDateGroupSelected(email.received_at)"
+                      :aria-label="`${dateGroupLabel(email.received_at)}全选`"
+                      @change="toggleDateGroup(email.received_at)"
+                    />
+                    <span>全选当天</span>
+                  </label>
+                </div>
+                <div
                 :class="['mail-list-row group grid cursor-pointer items-center gap-x-3 px-4 py-[0.65rem]', !email.is_read ? 'is-unread' : '']"
                 style="grid-template-columns: 1.5rem 1.2rem 1.5rem 5.4rem 7.6rem minmax(0,1fr) 1rem 4rem 2.5rem"
                 @click="openEmail(email)"
@@ -326,6 +313,11 @@
 
                 <div class="min-w-0">
                   <div class="flex items-center gap-2">
+                    <span
+                      v-if="email.importance === 'possible_important'"
+                      class="mail-row-tag border-stamp-red/30 bg-stamp-red/10 text-stamp-red"
+                      title="AI 评估：可能重要"
+                    >可能重要</span>
                     <p class="mail-row-subject" :class="{ 'font-semibold': !email.is_read }">{{ email.subject || '(无主题)' }}</p>
                     <span
                       v-for="tag in (email.tags || []).slice(0, 2)"
@@ -368,14 +360,26 @@
                     </svg>
                   </button>
                 </div>
-              </div>
+                </div>
+              </template>
             </div>
           </div>
 
-          <div ref="mobileListRef" class="space-y-3 overflow-y-auto p-4 lg:hidden">
-            <button
-              v-for="email in emails"
-              :key="email.id"
+          <div ref="mobileListRef" class="space-y-3 p-4 lg:hidden">
+            <template v-for="(email, index) in emails" :key="email.id">
+              <div v-if="isNewDateGroup(email, index)" class="mail-date-divider">
+                <span>{{ dateGroupLabel(email.received_at) }}</span>
+                <label class="mail-date-select" @click.stop>
+                  <input
+                    type="checkbox"
+                    :checked="isDateGroupSelected(email.received_at)"
+                    :aria-label="`${dateGroupLabel(email.received_at)}全选`"
+                    @change="toggleDateGroup(email.received_at)"
+                  />
+                  <span>全选当天</span>
+                </label>
+              </div>
+              <button
               class="mail-mobile-card block w-full"
               @click="openEmail(email)"
             >
@@ -408,6 +412,7 @@
                 </div>
               </div>
             </button>
+            </template>
           </div>
         </div>
       </div>
@@ -416,7 +421,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { emailsApi, accountsApi, tagsApi, codesApi } from '@/api';
 import { formatAccountName, formatAccountFull, formatTime } from '@/utils/display';
@@ -442,7 +447,8 @@ const searchQuery = ref('');
 const filter = ref('all');
 const selectedTag = ref('');
 const selectedIds = ref([]);
-const pagination = ref({ page: 1, limit: 50, total: 0, pages: 0 });
+const EMAIL_LIST_LIMIT = 200;
+const pagination = ref({ page: 1, limit: EMAIL_LIST_LIMIT, total: 0, pages: 0 });
 const tableShellRef = ref(null);
 const tableToolbarRef = ref(null);
 const desktopColumnsRef = ref(null);
@@ -457,7 +463,7 @@ let resizeTimer = null;
 
 const heroMetrics = computed(() => [
   {
-    label: '本页',
+    label: '当前结果',
     value: emails.value.length,
     toneClass: '',
   },
@@ -491,6 +497,52 @@ const filters = [
   { key: 'starred', label: '标星' },
   { key: 'archived', label: '已归档' },
 ];
+
+const dateGroupKey = (value) => dayjs(value).isValid() ? dayjs(value).format('YYYY-MM-DD') : 'unknown';
+
+const isNewDateGroup = (email, index) => {
+  return index === 0 || dateGroupKey(email.received_at) !== dateGroupKey(emails.value[index - 1]?.received_at);
+};
+
+const dateGroupLabel = (value) => {
+  const date = dayjs(value);
+  if (!date.isValid()) return '日期未知';
+  const today = dayjs().startOf('day');
+  const messageDay = date.startOf('day');
+  const daysAgo = today.diff(messageDay, 'day');
+
+  if (daysAgo === 0) return '今天';
+  if (daysAgo === 1) return '昨天';
+  if (daysAgo === 2) return '前天';
+  if (date.year() === today.year()) return date.format('M月D日 dddd');
+  return date.format('YYYY年M月D日 dddd');
+};
+
+const dateGroupEmailIds = (value) => {
+  const key = dateGroupKey(value);
+  return emails.value
+    .filter((email) => dateGroupKey(email.received_at) === key)
+    .map((email) => email.id);
+};
+
+const isDateGroupSelected = (value) => {
+  const ids = dateGroupEmailIds(value);
+  return ids.length > 0 && ids.every((id) => selectedIds.value.includes(id));
+};
+
+const toggleDateGroup = (value) => {
+  const ids = dateGroupEmailIds(value);
+  if (ids.length === 0) return;
+
+  if (ids.every((id) => selectedIds.value.includes(id))) {
+    selectedIds.value = selectedIds.value.filter((id) => !ids.includes(id));
+    return;
+  }
+
+  const nextSelected = new Set(selectedIds.value);
+  ids.forEach((id) => nextSelected.add(id));
+  selectedIds.value = Array.from(nextSelected);
+};
 
 const cleanPreview = (text) => {
   if (!text) return '';
@@ -574,14 +626,7 @@ const applyRouteQuery = () => {
   }
 };
 
-const handleResize = () => {
-  if (resizeTimer) clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(() => {
-    if (syncPageLimitFromViewport()) {
-      loadEmails();
-    }
-  }, 120);
-};
+const handleResize = () => {};
 
 const startBoost = async (accountId) => {
   try {
@@ -681,6 +726,8 @@ const loadTags = async () => {
 
 const loadEmails = async () => {
   loading.value = true;
+  pagination.value.page = 1;
+  pagination.value.limit = EMAIL_LIST_LIMIT;
   const requestedLimit = pagination.value.limit;
   try {
     const params = {
@@ -730,11 +777,6 @@ const loadEmails = async () => {
     console.error(e);
   } finally {
     loading.value = false;
-    await nextTick();
-
-    if (pagination.value.limit === requestedLimit && syncPageLimitFromViewport()) {
-      loadEmails();
-    }
   }
 };
 
@@ -821,10 +863,19 @@ const deleteEmail = async (email) => {
     return;
   }
   if (!await dialog.confirm('确定删除这封邮件吗？')) return;
+
+  const previousEmails = emails.value;
+  const previousPagination = { ...pagination.value };
+  emails.value = emails.value.filter((item) => item.id !== email.id);
+  selectedIds.value = selectedIds.value.filter((id) => id !== email.id);
+  pagination.value.total = Math.max(0, pagination.value.total - 1);
+
   try {
     await emailsApi.delete(email.id);
-    loadEmails();
   } catch (e) {
+    emails.value = previousEmails;
+    pagination.value = previousPagination;
+    await dialog.alert('删除失败: ' + e.message);
     console.error(e);
   }
 };
@@ -856,11 +907,22 @@ const batchDelete = async () => {
     return;
   }
   if (!await dialog.confirm(`确定删除选中的 ${selectedIds.value.length} 封邮件吗？`)) return;
+
+  const idsToDelete = [...selectedIds.value];
+  const previousEmails = emails.value;
+  const previousPagination = { ...pagination.value };
+  const deletedIds = new Set(idsToDelete);
+  emails.value = emails.value.filter((email) => !deletedIds.has(email.id));
+  clearSelection();
+  pagination.value.total = Math.max(0, pagination.value.total - idsToDelete.length);
+
   try {
-    await emailsApi.batchDelete(selectedIds.value);
-    clearSelection();
-    loadEmails();
+    await emailsApi.batchDelete(idsToDelete);
   } catch (e) {
+    emails.value = previousEmails;
+    pagination.value = previousPagination;
+    selectedIds.value = idsToDelete;
+    await dialog.alert('删除失败: ' + e.message);
     console.error(e);
   }
 };
@@ -876,7 +938,6 @@ watch(
 
 onMounted(() => {
   applyRouteQuery();
-  syncPageLimitFromViewport();
   loadAccounts();
   loadTags();
   checkBoostStatus();

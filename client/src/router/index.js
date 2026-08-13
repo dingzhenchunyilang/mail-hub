@@ -11,6 +11,11 @@ const routes = [
     component: () => import('@/views/Inbox.vue'),
   },
   {
+    path: '/trash',
+    name: 'Trash',
+    component: () => import('@/views/Trash.vue'),
+  },
+  {
     path: '/inbox/:id',
     name: 'EmailDetail',
     component: () => import('@/views/EmailDetail.vue'),

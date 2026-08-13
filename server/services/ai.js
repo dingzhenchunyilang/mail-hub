@@ -56,6 +56,46 @@ export class AiService {
     }
   }
 
+  parseMailClassification(result) {
+    const fallback = { importance: 'normal', is_ad: false };
+    try {
+      const match = String(result || '').match(/\{[\s\S]*\}/);
+      if (!match) return fallback;
+      const parsed = JSON.parse(match[0]);
+      return {
+        importance: parsed.importance === 'possible_important' ? 'possible_important' : 'normal',
+        is_ad: parsed.is_ad === true,
+      };
+    } catch {
+      return fallback;
+    }
+  }
+
+  async classifyEmail(email) {
+    const prompt = `你是邮件分拣器。请严格只返回一个 JSON 对象，不要解释、不要 Markdown：
+{"importance":"normal|possible_important","is_ad":true|false}
+
+【重要性判定】
+将邮件判为 possible_important，只要它可能需要用户在近期查看、回复、确认、付款、提交材料或按截止日期行动，尤其包括：
+- 银行、支付、账户、安全、登录、OTP、验证码、异常登录、文件上传或身份验证
+- 交易成交、订单确认、退款、账单、财务变动
+- 航班、酒店、旅行订单、行程、值机、出行提醒
+- 学校/工作中的课程注册、项目分配、成绩、申请、录取、截止日期、会议或明确活动安排
+- 私人联系人直接发来的邮件、明确回复或待办事项
+普通 newsletter、社交平台摘要、一般资讯、纯宣传活动和无行动要求的通知判为 normal；normal 是默认类别。闲聊、问候和无明确行动的个人邮件也判为 normal。
+只要存在明确行动要求、明确截止日期或行动要求，优先判为 possible_important，不要因为发件人是 noreply 而降级；不要仅因发件人是官方地址或正文出现某个关键词就提高重要性。
+
+【广告判定】
+is_ad=true 的情况包括：商品/服务促销、优惠券、折扣、返现、限时活动、商业推荐、酒店/购物营销、交易平台拉新或活动、招聘/职业推广、课程推广、newsletter/订阅资讯，即使发件人是学校或平台官方地址也要按内容判断。
+is_ad=false 的情况包括：一次性订单确认、航班/酒店已预订确认、银行账单/交易通知、安全通知、验证码/OTP、学校行政通知、个人邮件。广告和重要可以同时成立；不要把 is_ad 当作 importance 的反面。
+
+发件人：${email.from_name || ''} <${email.from_address || ''}>
+主题：${email.subject || ''}
+正文：${(email.body_text || email.preview || '').slice(0, 5000)}`;
+    const result = await this.chat([{ role: 'user', content: prompt }], { temperature: 0.1, maxTokens: 120, timeoutMs: 30000 });
+    return this.parseMailClassification(result);
+  }
+
   // 邮件摘要
   async summarizeEmail(email) {
     const prompt = `请用中文简洁地总结以下邮件的核心内容，控制在100字以内：

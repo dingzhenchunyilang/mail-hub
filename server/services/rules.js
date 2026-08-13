@@ -38,6 +38,9 @@ export class RuleEngine {
       case 'to_address':
         fieldValue = email.to_address || '';
         break;
+      case 'list_unsubscribe':
+        fieldValue = email.list_unsubscribe || '';
+        break;
       default:
         fieldValue = email.subject || '';
     }
@@ -118,6 +121,8 @@ export class RuleEngine {
       const { matchedRules, actions } = this.applyRules(email);
 
       for (const action of actions) {
+        // 广告标签已经由 AI 分类，历史关键词广告规则不再落地执行。
+        if (action.type === 'tag' && action.value === '广告') continue;
         switch (action.type) {
           case 'tag':
             this.addTag(db, emailId, action.value);
@@ -156,11 +161,15 @@ export class RuleEngine {
   processAllUnprocessed() {
     const db = getDb();
     try {
-      // 获取没有标签的邮件
+      // 广告标签由 AI 负责；规则引擎只处理其它业务规则。
       const emails = db.prepare(`
         SELECT e.id FROM emails e
-        LEFT JOIN email_tags et ON e.id = et.email_id
-        WHERE et.email_id IS NULL AND e.is_deleted = 0
+        WHERE e.is_deleted = 0
+          AND NOT EXISTS (
+            SELECT 1 FROM email_tags et
+            JOIN tags t ON t.id = et.tag_id
+            WHERE et.email_id = e.id AND t.name = '广告'
+          )
         ORDER BY e.received_at DESC
         LIMIT 100
       `).all();
@@ -350,16 +359,14 @@ export function removeEmailTag(emailId, tagId) {
   }
 }
 
-// 内置规则模板
 export function getRuleTemplates() {
   return [
-    // ── 广告识别规则组 ──
     {
       name: '广告识别：退订关键词',
-      description: '正文含"退订/unsubscribe/opt out"等关键词 → 打标签"广告"',
-      match_field: 'body',
+      description: '邮件退订头含"unsubscribe" → 打标签"广告"',
+      match_field: 'list_unsubscribe',
       match_type: 'regex',
-      match_value: '(退订|取消订阅|unsubscribe|opt[- ]?out)',
+      match_value: '(unsubscribe|opt[- ]?out)',
       action_type: 'tag',
       action_value: '广告',
       priority: 30,
@@ -367,10 +374,10 @@ export function getRuleTemplates() {
     },
     {
       name: '广告识别：发件人地址特征',
-      description: '发件人为 noreply/newsletter/marketing/promotions → 打标签"广告"',
+      description: '发件人为 newsletter/marketing/promotions 等营销地址 → 打标签“广告”',
       match_field: 'from_address',
       match_type: 'regex',
-      match_value: '^(noreply|no-reply|newsletter|marketing|promotions|promo)@',
+      match_value: '^(newsletter|marketing|promotions|promo)@',
       action_type: 'tag',
       action_value: '广告',
       priority: 20,
@@ -378,10 +385,10 @@ export function getRuleTemplates() {
     },
     {
       name: '广告识别：主题关键词',
-      description: '主题含"限时优惠/折扣/sale/% off"等 → 打标签"广告"',
+      description: '主题含“优惠券/体验券/折扣/sale”等营销词 → 打标签“广告”',
       match_field: 'subject',
       match_type: 'regex',
-      match_value: '(限时优惠|立即抢购|折扣|特惠|清仓|立省|sale|\\d+\\s*%\\s*off|discount)',
+      match_value: '(限时优惠|立即抢购|折扣|特惠|清仓|立省|优惠券|体验券|专属福利|限时活动|sale|\\d+\\s*%\\s*off|discount|reward|bonus)',
       action_type: 'tag',
       action_value: '广告',
       priority: 10,
